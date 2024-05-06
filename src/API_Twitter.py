@@ -18,13 +18,13 @@ class ColoredLogHandler(logging.StreamHandler):
 
         # 定義不同等級的顏色映射
         self.color_mapping = {
-            logging.DEBUG: '\033[92m',           # 浅绿色
+            logging.DEBUG: '\033[92m',           # 淺綠色
             logging.INFO: '\033[96m',            # 青色
             logging.WARNING: '\033[38;5;214m',   # 金黃色
-            logging.ERROR: '\x1b[31m',           # 深红色
-            logging.CRITICAL:  '\033[91m',      # 深紫红色
+            logging.ERROR: '\x1b[31m',           # 深紅色
+            logging.CRITICAL:  '\033[91m',      # 深紫紅色
         }
-        self.reset_color = '\033[0m'  # 重置颜色
+        self.reset_color = '\033[0m'  # 重置顏色
         self._fmt = fmt or logging.BASIC_FORMAT
 
         # 如果指定了文件路徑，則創建一個文件處理器
@@ -52,7 +52,7 @@ class ColoredLogHandler(logging.StreamHandler):
         return formatter.format(record)
 
     def emit(self, record):
-        # 將日誌訊息輸出到控制台
+        # 將日誌訊息輸出到控製臺
         super().emit(record)
 
         # 如果有文件處理器，則將日誌訊息寫入到文件
@@ -173,60 +173,6 @@ class Main_for_twitter:
                     save_to_pkl()
 
                     Twitter.twitter_rss()  # 呼叫HTTP RSS請求和存入字典的操作
-
-                    """
-                    def check_twitter_dict_value():
-                        os.chdir(os.path.dirname(os.path.abspath(__file__)))
-                        with open('../assets/Twitter_dict.json', 'r') as j:
-                            twitter_dict = json.load(j)
-                        with open(Twitter_cache_dict_pkl, 'rb') as f:
-                            temp = pickle.load(f)
-                        if (len(temp)) > 0:
-                            # 取第一個元素的第 2 到第 3 個字符取出並轉換為字符串後連接起來，再去除方括號和單引號
-                            hash_link = ''.join(str(temp[0][2:3])).strip("[]'")
-                            # 要比對的key
-                            desired_key = str(hash_link)
-                            # 檢查desired_key是否存在於字典中並以布林值的形式打印比對結果
-                            key_exists = desired_key in twitter_dict
-                            return key_exists
-
-                    def remove_first_values_from_twitter(count):
-                        if not os.path.exists(Twitter_cache_dict_pkl):
-                            logging.warning(
-                                " /assets/Twitter_cache_dict.pkl not found."
-                            )
-                            return
-                        try:
-                            with open(Twitter_cache_dict_pkl, "rb") as f:
-                                loaded_list = pickle.load(f)
-                        except FileNotFoundError:
-                            logging.warning(
-                                "Error: Unable to load  /assets/Twitter_cache_dict.pkl."
-                            )
-                            return
-                        if not loaded_list:
-                            logging.warning("List is empty now.")
-                            return
-                        if count > len(loaded_list):
-                            logging.warning(
-                                f"Error: List length ({len(loaded_list)}) is smaller than count ({count})."
-                            )
-                            return
-                        removed_values = []
-                        for _ in range(count):
-                            removed_values.append(loaded_list.pop(0))
-                        if len(loaded_list) == 1 and not loaded_list[0]:
-                            logging.INFO(
-                                "Only one empty list remaining. Deleting it."
-                            )
-                            loaded_list = []
-                        with open(Twitter_cache_dict_pkl, "wb") as f:
-                            pickle.dump(loaded_list, f)
-                    # 如果字典中已經確認此筆HASH的Key
-                    if check_twitter_dict_value():
-                        # pop up 第一筆 /assets/Twitter_cache_dict.pkl 資料
-                        remove_first_values_from_twitter(1)
-                        """
                 else:
                     # 沒找到匹配的帳號
                     pass
