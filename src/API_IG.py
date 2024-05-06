@@ -1,3 +1,7 @@
+###########################################################
+#instaloader power by Alexander Graf and André Koch-Kramer
+# https://github.com/instaloader/instaloader
+##########################################################
 import glob
 import hashlib
 import json
