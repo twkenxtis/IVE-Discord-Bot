@@ -2,6 +2,8 @@
 
 A fully custom Discord Bot for IVE
 
+** 🚧 Development... 92% Now **
+
 - If want update ive_hashtag.json File using <update_ive_hashtag.py>
 
 > Please make sure your are following json format edit and **DO NOT CHANGE JSON FILE NAME** Please!
