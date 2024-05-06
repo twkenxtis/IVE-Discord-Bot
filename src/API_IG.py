@@ -20,13 +20,13 @@ class ColoredLogHandler(logging.StreamHandler):
 
         # 定義不同等級的顏色映射
         self.color_mapping = {
-            logging.DEBUG: '\033[92m',           # 浅绿色
+            logging.DEBUG: '\033[92m',           # 淺綠色
             logging.INFO: '\033[96m',            # 青色
             logging.WARNING: '\033[38;5;214m',   # 金黃色
-            logging.ERROR: '\x1b[31m',           # 深红色
-            logging.CRITICAL:  '\033[91m',      # 深紫红色
+            logging.ERROR: '\x1b[31m',           # 深紅色
+            logging.CRITICAL:  '\033[91m',      # 深紫紅色
         }
-        self.reset_color = '\033[0m'  # 重置颜色
+        self.reset_color = '\033[0m'  # 重置顏色
         self._fmt = fmt or logging.BASIC_FORMAT
 
         # 如果指定了文件路徑，則創建一個文件處理器
@@ -54,7 +54,7 @@ class ColoredLogHandler(logging.StreamHandler):
         return formatter.format(record)
 
     def emit(self, record):
-        # 將日誌訊息輸出到控制台
+        # 將日誌訊息輸出到控製臺
         super().emit(record)
 
         # 如果有文件處理器，則將日誌訊息寫入到文件
@@ -122,7 +122,7 @@ class Main_for_instagram:
                 insta_media_id = ''.join(pickle.load(f)[0][0:1]).strip("[]'")
             dir_file_path = f'../assets/images/instagram/{insta_media_id}'
 
-            """
+            
             L = instaloader.Instaloader()
             # EX: https://www.instagram.com/p/C6BmbFHSkE5/
             try:
@@ -140,7 +140,7 @@ class Main_for_instagram:
 
             # Download the post
             L.download_post(post, target=insta_media_id)
-            """
+            
 
             Instagram.ig_rss()  # 發起Http請求 + RSSHUB + 檢查是否通知來自IG，最後存到字典中
 
@@ -174,86 +174,6 @@ class Main_for_instagram:
             else:
                 logging.warning("Instaloader Downloads failed.")
 
-            """
-            def check_dict_value():
-                os.chdir(os.path.dirname(os.path.abspath(__file__)))
-                with open('../assets/IG_dict.json', 'r') as j:
-                    ig_dict = json.load(j)
-                with open('../assets/IG_cache_dict.pkl', 'rb') as f:
-                    temp = pickle.load(f)
-
-                if len(temp) > 0:
-                    # 取第一個元素的第 2 到第 3 個字符取出並轉換為字符串後連接起來，再去除方括號和單引號
-                    ig_link = ''.join(str(temp[0][2:3])).strip("[]'") + '/'
-                    # 將ig_link字符串進行MD5哈希計算
-                    ig_link = hashlib.md5(ig_link.encode()).hexdigest()
-
-                    # 要比對的key
-                    desired_key = ig_link
-                    # 檢查desired_key是否存在於字典中並以布林值的形式打印比對結果
-                    key_exists = desired_key in ig_dict
-                    return key_exists
-
-            def remove_first_values_from_ig(count):
-                # 內部函數：刪除列表的前 count 個值
-                def remove_first_values(data, count):
-                    # 如果列表為空，則直接返回空列表
-                    if not data:
-                        return []
-
-                    # 如果 count 大於列表長度，則返回空列表
-                    if count > len(data):
-                        logging.warning(
-                            f"Error: List length ({len(data)}) is smaller than count ({count})."
-                        )
-                        return []
-
-                    # 創建一個空列表，存儲被刪除的值
-                    removed_values = []
-                    for _ in range(count):
-                        removed_values.append(data.pop(0))
-
-                    return removed_values
-
-                file_path_cache = os.path.join(os.path.dirname(
-                    os.path.abspath(__file__)), '../assets/IG_cache_dict.pkl')
-
-                if not os.path.exists(file_path_cache):
-                    logging.warning(
-                        "Error: /assets/IG_cache_dict.pkl not found."
-                    )
-                    return
-
-                try:
-                    with open(file_path_cache, 'rb') as f:
-                        loaded_list = pickle.load(f)
-                except FileNotFoundError:
-                    logging.warning(
-                        "Error: Unable to load /assets/IG_cache_dict.pkl"
-                    )
-                    return
-
-                # 檢查 count 是否大於列表長度
-                if count > len(loaded_list):
-                    logging.warning(
-                        f"Error: List length ({len(loaded_list)}) is smaller than count ({count}).")
-                    return
-
-                # 刪除 loaded_list 前 count 個值
-                remove_first_values(loaded_list, count)
-
-                # 如果 loaded_list 長度為 1 且第一個元素為空列表，則刪除 loaded_list
-                if len(loaded_list) == 1 and not loaded_list[0]:
-                    logging.INFO("Only one empty list remaining. Deleting it.")
-                    loaded_list = []
-
-                with open(file_path_cache, 'wb') as f:
-                    pickle.dump(loaded_list, f)
-            # 如果字典中已經確認此筆HASH的Key
-            if check_dict_value():
-                # pop up 第一筆 /assets/IG_cache_dict.pkl 資料
-                remove_first_values_from_ig(1)
-                """
 
     ig_account_process()
 
