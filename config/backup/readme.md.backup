@@ -1,0 +1,26 @@
+- If want update ive_hashtag.json File
+
+Please make sure your are following json format and **DO NOT CHANGE FILE NAME** Please!
+
+### About settings.json:
+
+## windows
+
+`C:\Users\<username\AppData\Local\Google\Chrome\User Data\Default\Platform Notifications\000003.log`
+Can't find the file? try typing `windows+R` - `%appdate%` - `Follow the path` - find the 000003.log is a binary file.
+back to config folder and open `settings.json` change the <username> and your done.
+
+## Linux
+
+Please change your **<$HOME** to your **home path name** in `settings.json`
+Linux chrome notify history file path is `"$HOME/.config/google-chrome/Default/Platform Notifications/000003.log"`
+If you don't find the file, try to find the file by typing `locate 000003.log` in terminal. or using fzf
+back to config folder and open `settings.json` change the <username> and your done.
+
+## Other
+
+For example your using docker like (docker-webtop)[https://docs.linuxserver.io/images/docker-webtop/]
+find your browser file path and follow the `\Google\Chrome\User Data\Default\Platform Notifications\000003.log` to find out 000003.log is a binary file.
+Don't forget bind `000003.log` patch in yor docker volumes into container
+back to config folder and open `settings.json` change the <username and your done.
+heck your docker log and environment if all good will your successfully done.
