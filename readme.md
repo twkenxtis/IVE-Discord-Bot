@@ -2,7 +2,11 @@
 
 A fully custom Discord Bot for IVE
 
+
+
 **🚧 Development... 92% Now**
+
+
 
 - If want update ive_hashtag.json File using <update_ive_hashtag.py>
 
@@ -11,6 +15,7 @@ A fully custom Discord Bot for IVE
 # How to setup :
 - Abount config/.env
   open .env then wrote your Discord *TOKEN* .env file For example:
+  
   ```TOKEN=3141592653589793238462643383279502884197169399375105820974944```
   This is your Discord bot setting
   
@@ -20,21 +25,29 @@ A fully custom Discord Bot for IVE
 `C:\Users\<username\AppData\Local\Google\Chrome\User Data\Default\Platform Notifications\000003.log`
 
 > Can't find the file? try typing `windows+R`➡️`%appdate%`➡️`Follow the path`➡️then find out the 000003.log is a binary file.
+> 
 > back to config folder and open `settings.json` change the <username> and your done.
 
 ## windows WSL
 
 > Change <username> to your computer username on WSL.
+> 
 > `cat '/mnt/c/Users/<username>/AppData/Local/Google/Chrome/User Data/Default/Platform Notifications/000003.log'`
+> 
 > If see your notify history then congratulations! Your are find the file.
+> 
 > `vim settings.json` then chose UNIX path and write your patch
+> 
 > back to config folder and open `settings.json` change the <username> and your done.
 
 ## Linux
 
 Please change your **<$HOME>** to your **home path name** in `settings.json` your chrome or chromium browser install path
+
 Linux chrome notify history file path is `"home/<username>/.config/google-chrome/Default/Platform Notifications/000003.log"`
+
 If you don't find the file, try to find the file by typing `locate 000003.log` in terminal. or using fzf
+
 back to config folder and open `settings.json` change the <username> and your done.
 
 ## Other environment
@@ -51,7 +64,8 @@ Ensure that your Docker container is up and running, then examine the Docker log
 # How it works?
 - trigger your local chrome notifications and post a request for [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic process send to Discord channel
 ### What is RSSHUB?
-**I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)**
+> **I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)**
+
 
 Setp1 : Make sure your chrome allow send notify and turn on chrome setting ``System/Continue running backgroud apss when Google chrome is close``
 
