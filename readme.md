@@ -76,7 +76,7 @@ Setp1 : Make sure your chrome allow send notify and turn on this setting on goog
 
 Setp2 : Make sure Allow Twitter and instagram **Web Push API** ， Because sometimes,privacy-focused browser extensions may block it.
 
-Setp3 : goto ```/config/setting/`` `和 ```/config/.env``` wrote your Discord Token and chrome notify locate.
+Setp3 : goto ```/config/setting/``` and ```/config/.env``` wrote your Discord Token and chrome notify locate.
 
 Setp4 : Using ```python3 API_notify.py``` shoud be start working
 
