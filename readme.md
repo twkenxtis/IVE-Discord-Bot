@@ -22,7 +22,7 @@ A fully custom Discord Bot for IVE
 - About config/settings.json
 ## windows
 
-`C:\Users\<username\AppData\Local\Google\Chrome\User Data\Default\Platform Notifications\000003.log`
+`C:\Users\<username>\AppData\Local\Google\Chrome\User Data\Default\Platform Notifications\000003.log`
 
 > Can't find the file? try typing `windows+R`➡️`%appdate%`➡️`Follow the path`➡️then find out the 000003.log is a binary file.
 > 
