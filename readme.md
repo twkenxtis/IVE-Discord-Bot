@@ -52,10 +52,10 @@ Ensure that your Docker container is up and running, then examine the Docker log
 - trigger your local chrome notifications and post a request for [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic process send to Discord channel
 ### What is RSSHUB?
 >> I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)
-> Setp1 : Make sure your chrome allow send notify and turn on chrome setting ``System/Continue running backgroud apss when Google chrome is close``
-> Setp2 : Make sure Allow Twitter and instagram **Web Push API** ， Because sometimes,privacy-focused browser extensions may block it.
-> Setp3 : goto ```/config/setting/`` `和 ```/config/.env``` wrote your Discord Token and chrome notify locate
-> Setp4 : Using ```python3 API_notify.py``` shoud be start working
+ Setp1 : Make sure your chrome allow send notify and turn on chrome setting ``System/Continue running backgroud apss when Google chrome is close``
+ Setp2 : Make sure Allow Twitter and instagram **Web Push API** ， Because sometimes,privacy-focused browser extensions may block it.
+ Setp3 : goto ```/config/setting/`` `和 ```/config/.env``` wrote your Discord Token and chrome notify locate
+ Setp4 : Using ```python3 API_notify.py``` shoud be start working
 
 ## In the END, I don't have Mac so I'm not sure is working on Mac....
 
