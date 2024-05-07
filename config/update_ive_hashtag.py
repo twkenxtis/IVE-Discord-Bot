@@ -5,7 +5,7 @@ import shutil
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 json_file = 'ive_hashtag.json'
-backup_file = 'backup.ive_hashtag.json'
+backup_file = 'backup/backup.ive_hashtag.json'
 if not os.path.isfile(json_file):
     shutil.copy2(backup_file, json_file)
     print('檢測到異常狀況，已還預設的json檔案')
