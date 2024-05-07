@@ -182,7 +182,8 @@ class Match_wich_account():
             "LIZ": "1237020520092794950",
             "liz.yeyo": "1237020520092794950",
             "LEESEO": "1237020484411985950",
-            "eeseooes": "1237020484411985950"
+            "eeseooes": "1237020484411985950",
+            "GROUPS": "1237421929229582439"
         }
 
         found = False
@@ -199,6 +200,55 @@ class Match_wich_account():
             return int(channel_value)
         else:
             logging.info("沒有匹配到的帳號")
+
+
+class Match_wich_minive():
+    def minive_id(self, ive_name):
+        minive_link = {
+            "GAEUL": "https://cdn.discordapp.com/emojis/1181917701568995328.webp?size=96&quality=lossless",
+            "fallingin__fall": "https://cdn.discordapp.com/emojis/1181917701568995328.webp?size=96&quality=lossless",
+            "YUJIN": "https://cdn.discordapp.com/emojis/1181917638578941962.webp?size=96&quality=lossless",
+            "_yujin_an": "https://cdn.discordapp.com/emojis/1181917638578941962.webp?size=96&quality=lossless",
+            "REI": "https://cdn.discordapp.com/emojis/1181917769256677426.webp?size=96&quality=lossless",
+            "reinyourheart": "https://cdn.discordapp.com/emojis/1181917769256677426.webp?size=96&quality=lossless",
+            "WONYOUNG": "https://cdn.discordapp.com/emojis/1181917841109307423.webp?size=96&quality=lossless",
+            "for_everyoung10": "https://cdn.discordapp.com/emojis/1181917841109307423.webp?size=96&quality=lossless",
+            "LIZ": "https://cdn.discordapp.com/emojis/1181917474581651567.webp?size=96&quality=lossless",
+            "liz.yeyo": "https://cdn.discordapp.com/emojis/1181917474581651567.webp?size=96&quality=lossless",
+            "LEESEO": "https://cdn.discordapp.com/emojis/1181917554948722810.webp?size=96&quality=lossless",
+            "eeseooes": "https://cdn.discordapp.com/emojis/1181917554948722810.webp?size=96&quality=lossless",
+            "GROUPS": "https://cdn.discordapp.com/emojis/1142897969876701395.webp?size=96&quality=lossless"
+        }
+
+        found = False
+        for key, value in minive_link.items():
+            if ive_name == key:
+                found = True
+                return key, value
+        if not found:
+            return None, None
+
+    def get_minive_link(self, ive_name):
+        minive_key, minive_value = self.minive_id(ive_name)
+        if minive_key is not None:
+            return str(minive_value)
+        else:
+            logging.info("沒有匹配到的帳號")
+
+
+class ButtonView(discord.ui.View):
+    def __init__(self, url: str, timeout: float | None = 60):
+        super().__init__(timeout=timeout)
+
+        url_button = discord.ui.Button(
+            label="Link",
+            style=discord.ButtonStyle.link,
+            url=url
+        )
+        self.add_item(url_button)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user == self.ctx.author
 
 
 class Discord_Twitter:
@@ -237,35 +287,67 @@ class Discord_Twitter:
             try:
                 # Twitter 對應的 channel ID
                 twitter_channel_id = Twitter.read_twitter_pkl()[0][1]
+                twitter_id = Twitter.read_twitter_pkl()[0][0]
                 channel_id = Match_wich_account().get_channel_id(twitter_channel_id)
+                minive_link = Match_wich_minive().get_minive_link(str(twitter_channel_id))
+
+                key_to_search = Twitter.read_twitter_pkl()[0][2]
+                if key_to_search in Twitter.read_twitter_dict():
+                    value = Twitter.read_twitter_dict()[key_to_search]
+                    twitter_author = value[0]
+                    twitter_link = value[1]
+                    twitter_entry = value[2]
+                    post_time = value[3]
+                    img_count = value[5]
+                    twitter_all_img = value[6]
             except IndexError:
-                logging.info('No data in the twitter_cache.pkl')
+                logging.error('No data in the twitter_cache.pkl')
 
             channel = self.bot.get_channel(channel_id)
 
             embed = discord.Embed(title="", color=discord.Color.purple())
             embed.set_author(
-                name="🔗 七次撲空 ",
+                name=twitter_author + '   ' +
+                '@(' + str(twitter_id) + ') ',
                 icon_url="https://i.meee.com.tw/caHwoj6.png",
-                url="https://twitter.com/qcpk0203/status/1787072894952255641"
+                url=twitter_link
             )
 
             embed.add_field(
-                name="Title",
-                value="貼文內容",
+                name='',
+                value=twitter_entry,
                 inline=True,
             )
 
-            urls = [
+            embed.set_footer(text='' + post_time +
+                             '   🖼️ ' + str(img_count),
+                             icon_url=str(minive_link))
+            # TODO: Footer 也做成字典隨頻道更換圖片
 
-            ]
+            def format_urls(url_string):
+                url_list = url_string.split(" ")
+                formatted_urls = []
+                for index, url in enumerate(url_list):
+                    markdown_url = f"[{index+1}]({url})"
+                    formatted_urls.append(markdown_url)
+                formatted_urls_str = ' '.join(formatted_urls)
+                return formatted_urls_str
 
-            for url in urls:
-                await channel.send(url)
-            DISCORD_send = await channel.send(embed=embed)
+            formatted_urls_str = format_urls(twitter_all_img)
+            await channel.send(str(formatted_urls_str))
+
+            button_url = twitter_link
+
+            button_view = ButtonView(url=button_url)
+
+            DISCORD_send = await channel.send(embed=embed, view=button_view)
 
             if DISCORD_send:
-                print('訊息已經成功發送!')
+                Twitter_PKL_popup.remove_first_values_from_twitter(1)
+                print('\x1b[38;2;255;255;51m發送到　\x1b[0m' + twitter_channel_id + ' ' +
+                      twitter_id + '　\x1b[91mOK，PKL Cache已經清除\x1b[0m')
+        else:
+            print('Discord 消息發送失敗')
 
     def run(self):
         self.bot.run(self.TOKEN)
