@@ -72,7 +72,7 @@ If all checks out well, you have successfully completed the setup.
 > **I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)**
 
 
-Setp1 : Make sure your chrome allow send notify and turn on this setting ``System/Continue running backgroud apss when Google chrome is close``
+Setp1 : Make sure your chrome allow send notify and turn on this setting on google-chrome  ``System/Continue running backgroud apss when Google chrome is close``
 
 Setp2 : Make sure Allow Twitter and instagram **Web Push API** ， Because sometimes,privacy-focused browser extensions may block it.
 
