@@ -45,8 +45,7 @@ A fully custom Discord Bot for IVE
 Please change your **<$HOME>** to your **home path name** in `settings.json` your chrome or chromium browser install path
 
 > Linux chrome notify history file path is `"home/<username>/.config/google-chrome/Default/Platform Notifications/000003.log"`
-
-> If you don't find the file, try to find the file by typing `locate 000003.log` in terminal. or using fzf
+> If you did't find the file, try to find the file by typing `locate 000003.log` in terminal. or using fzf
 
 back to config folder and open `settings.json` change the <username> and your done.
 
@@ -56,7 +55,6 @@ For example your using docker like [docker-webtop](https://docs.linuxserver.io/i
 
 
 > find your browser file path and follow the `\Google\Chrome\User Data\Default\Platform Notifications\000003.log` to find out 000003.log is a binary file.
-
 > Don't forget bind `000003.log` patch in yor docker volumes into container
 
 back to config folder and open `settings.json` change the <username> and your done.
