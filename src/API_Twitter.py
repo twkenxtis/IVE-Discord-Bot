@@ -18,13 +18,13 @@ class ColoredLogHandler(logging.StreamHandler):
 
         # 定義不同等級的顏色映射
         self.color_mapping = {
-            logging.DEBUG: '\033[92m',           # 淺綠色
+            logging.DEBUG: '\033[92m',           # 浅绿色
             logging.INFO: '\033[96m',            # 青色
             logging.WARNING: '\033[38;5;214m',   # 金黃色
-            logging.ERROR: '\x1b[31m',           # 深紅色
-            logging.CRITICAL:  '\033[91m',      # 深紫紅色
+            logging.ERROR: '\x1b[31m',           # 深红色
+            logging.CRITICAL:  '\033[91m',      # 深紫红色
         }
-        self.reset_color = '\033[0m'  # 重置顏色
+        self.reset_color = '\033[0m'  # 重置颜色
         self._fmt = fmt or logging.BASIC_FORMAT
 
         # 如果指定了文件路徑，則創建一個文件處理器
@@ -52,7 +52,7 @@ class ColoredLogHandler(logging.StreamHandler):
         return formatter.format(record)
 
     def emit(self, record):
-        # 將日誌訊息輸出到控製臺
+        # 將日誌訊息輸出到控制台
         super().emit(record)
 
         # 如果有文件處理器，則將日誌訊息寫入到文件
@@ -134,8 +134,8 @@ class Main_for_twitter:
                                 0]
                         )
 
-                # list 不為空才存入[Twitter_cache_list]
-                if len(saveto_cache_list) > 0:
+                # list 要同時匹配帳號和IVE TAG 才存入[Twitter_cache_list]
+                if len(saveto_cache_list) >= 2:  # At least 2
                     # 把 match Tag 轉成 str 後去除全部 [''] 字元
                     saveto_cache_list[1] = (
                         str(saveto_cache_list[1])
@@ -174,7 +174,7 @@ class Main_for_twitter:
 
                     Twitter.twitter_rss()  # 呼叫HTTP RSS請求和存入字典的操作
                 else:
-                    # 沒找到匹配的帳號
+                    Error_Log_Handler.error_log()
                     pass
             else:
                 # 沒找到匹配的Tag
