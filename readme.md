@@ -67,7 +67,7 @@ If all checks out well, you have successfully completed the setup.
 
 
 # How it works?
-- trigger your local chrome notifications and post a request for [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic process send to Discord channel
+- trigger your local chrome notifications and send GET request for [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic process send to Discord channel
 ### What is RSSHUB?
 > **I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)**
 
