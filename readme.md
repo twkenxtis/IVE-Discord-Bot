@@ -39,7 +39,7 @@ back to config folder and open `settings.json` change the <username> and your do
 
 ## Other environment
 
-For example your using docker like (docker-webtop)[https://docs.linuxserver.io/images/docker-webtop/]
+For example your using docker like [docker-webtop](https://docs.linuxserver.io/images/docker-webtop/)
 find your browser file path and follow the `\Google\Chrome\User Data\Default\Platform Notifications\000003.log` to find out 000003.log is a binary file.
 Don't forget bind `000003.log` patch in yor docker volumes into container
 back to config folder and open `settings.json` change the <username> and your done.
@@ -51,12 +51,12 @@ Ensure that your Docker container is up and running, then examine the Docker log
 # How it works?
 - trigger your local chrome notifications and post a request for [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic process send to Discord channel
 ### What is RSSHUB?
-- I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)
-## Setp1 : Make sure your chrome allow send notify and turn on chrome setting ``System/Continue running backgroud apss when Google chrome is close``
-## Setp2 : Make sure Allow Twitter and instagram **Web Push API** ， Because sometimes,privacy-focused browser extensions may block it.
-## Setp : goto ```/config/setting/`` `和 ```/config/.env``` wrote your Discord Token and chrome notify locate
-## Setp : Using ```python3 API_notify.py``` shoud be start working
+>> I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)
+> Setp1 : Make sure your chrome allow send notify and turn on chrome setting ``System/Continue running backgroud apss when Google chrome is close``
+> Setp2 : Make sure Allow Twitter and instagram **Web Push API** ， Because sometimes,privacy-focused browser extensions may block it.
+> Setp3 : goto ```/config/setting/`` `和 ```/config/.env``` wrote your Discord Token and chrome notify locate
+> Setp4 : Using ```python3 API_notify.py``` shoud be start working
 
-## I don't have Mac so I'm not sure is working on Mac....
+## In the END, I don't have Mac so I'm not sure is working on Mac....
 
 > If your trying running on mac try to find 000003.log then check file authority!
