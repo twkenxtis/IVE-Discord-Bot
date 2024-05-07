@@ -123,16 +123,14 @@ class Main_for_twitter:
                 if TwitterEntry_Tag_Processor.search_with_hashmap(hashtags)[0] is True:
                     # Boolean value 都是 (hashtags)[0] 返回的匹配成員 value > (hashtags)[0]
                     if not match_output_tuple is False and _list_append_SWITCH is True:
+                        # 將運算回來的成員存到List中
                         saveto_cache_list.append(
                             TwitterEntry_Tag_Processor.search_with_hashmap(hashtags)[
                                 1][-1:]
                         )
-                    else:
-                        # 如果False就是檢測到多人成員TAG
-                        saveto_cache_list.append(
-                            TwitterEntry_Tag_Processor.search_with_hashmap(hashtags)[
-                                0]
-                        )
+                else:
+                    # 如果False就是檢測到多人成員TAG
+                    saveto_cache_list.append(str("GROUPS"))
 
                 # list 要同時匹配帳號和IVE TAG 才存入[Twitter_cache_list]
                 if len(saveto_cache_list) >= 2:  # At least 2
