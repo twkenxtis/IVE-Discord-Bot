@@ -14,15 +14,13 @@ class ColoredLogHandler(logging.StreamHandler):
         super().__init__()
         # 定義不同等級的顏色映射
         self.color_mapping = {
-            logging.DEBUG:'\033[92m',           # 浅绿色
-            logging.INFO:'\033[96m',            # 青色
-            logging.WARNING:'\033[38;5;214m',   # 金黃色
-            logging.ERROR:'\x1b[31m',           # 深红色
-            logging.CRITICAL:  '\033[91m',      # 深紫红色
-                                   
-            
+            logging.DEBUG: '\033[92m',           # 淺綠色
+            logging.INFO: '\033[96m',            # 青色
+            logging.WARNING: '\033[38;5;214m',   # 金黃色
+            logging.ERROR: '\x1b[31m',           # 深紅色
+            logging.CRITICAL:  '\033[91m',      # 深紫紅色
         }
-        self.reset_color = '\033[0m'  # 重置颜色
+        self.reset_color = '\033[0m'  # 重置顔色
         self._fmt = fmt or logging.BASIC_FORMAT
 
     def format(self, record):
@@ -44,7 +42,7 @@ class HTTP3Requester:
     def send_request(self):
         with httpx.Client() as client:
             response = client.get(self.url, timeout=5)
-            self.response_content = response.text  # STR 
+            self.response_content = response.text  # STR
 
     # 定義了一個get_response_content方法，用於獲取self.response_content屬性的值並返回
     def get_response_content(self):
@@ -61,19 +59,19 @@ class HTTP3Requester:
                 response = client.get(self.url, headers=headers, timeout=10)
                 if response is not None and 200 == response.status_code:
                     self.response_content = response.text  # string response content
-                    print(
-                        # system current time
-                        f"\033[90m{SystemTime.format_current_time()}\033[0m "
-                        # http response code
-                        f"\033[38;2;255;212;128mhttp response code:\033[0m \033[38;2;153;255;214m{response.status_code}\033[0m "
+                    logging.info(
+                        f"System current time : {SystemTime.format_current_time()}"
+                    )
+                else:
+                    logging.warning(
+                        f"System current time : {SystemTime.format_current_time()}"
+                        f" HTTP response code : {response.status_code}"
                     )
             except Exception as HTTP_ERROR_EXCEPTION:
-                print(
-                    # system current time
-                    f"System current time: \033[90m{SystemTime.format_current_time()}\033[0m "
-                    # error message
-                    f"\033[91mError: {str(HTTP_ERROR_EXCEPTION)}\033[0m"
-                    )
+                logging.error(
+                    f"System current time: {SystemTime.format_current_time()}"
+                    f" Error: {str(HTTP_ERROR_EXCEPTION)}"
+                )
             return self.response_content
 
     def start_requests(self, num_of_requests):
