@@ -3,6 +3,7 @@ import logging
 import os
 import pickle
 
+from Discord import *
 from twitter.API_match_Twitter_account import (
     TwitterAccountProcessor,
     TwitterEntry_Tag_Processor,
@@ -184,4 +185,5 @@ class Main_for_twitter:
     twitter_account_process()
 
 
-Main_for_twitter()
+if __name__ == '__main__':
+    Main_for_twitter()
