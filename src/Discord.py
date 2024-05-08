@@ -1,11 +1,15 @@
+import os
+import asyncio
+import pickle
+import datetime
+
 import json
 import logging
-import os
-import pickle
 import urllib.parse
 
 import discord
 from discord.ext import commands
+from discord import Embed
 
 
 class ColoredLogHandler(logging.StreamHandler):
@@ -251,107 +255,118 @@ class ButtonView(discord.ui.View):
         return interaction.user == self.ctx.author
 
 
-class Discord_Twitter:
-    def __init__(self):
-        # 初始化工作目錄 環境變數
-        self.script_dir = os.path.dirname(os.path.abspath(__file__))
-        self.env_file_path = os.path.join('../config\\.env')
-        # TODO: Development 開關用來判定要不要送出Discord訊息
-        self.send_embed = True
-        # 讀取.env 檔案內的 TOKEN 並設定給 bot
-        self.TOKEN = self.get_env_var(self.env_file_path, 'TOKEN')
-        # 主要功能是創建了一個Discord bot對象，並為其設置了命令前綴和意圖
-        # 同時指定了當bot準備就緒時將調用相應的事件處理器方法
-        self.bot = commands.Bot(
-            command_prefix='%', intents=discord.Intents.all())
-        self.bot.event(self.on_ready)
+def load_DC_token():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    env_file_path = os.path.join(script_dir, '../config/.env')
+    with open(env_file_path, 'r') as file:
+        for line in file:
+            if line.startswith('TOKEN'):
+                return line.split('=')[1].strip()
 
-    # 抓環境檔案中指定變數的值，然後回傳該值
-    def get_env_var(self, env_path, var_name):
-        with open(env_path, 'r') as file:
-            for line in file:
-                if line.startswith(var_name):
-                    value = line.split('=')[1].strip()
-                    if value:  # check if value is not empty
-                        return value
-        logging.error(f'Discord TOKEN 無法在.env 辨識到，請檢察環境變數檔案')
-        raise ValueError(
-            f'Environment variable {var_name} not found in {env_path}')
 
-    async def on_ready(self):
-        print(f"目前登入身份 --> {self.bot.user}")
+TOKEN = load_DC_token()
 
-        # TODO: 這個 IF 判斷式開發完要刪除 僅用於開發測試使用！
-        if self.send_embed:
+intents = discord.Intents.default()
+intents.message_content = True
+# 前綴設定為None，不使用預設的 !
+client = commands.Bot(command_prefix=None, intents=intents)
 
-            try:
-                # Twitter 對應的 channel ID
-                twitter_channel_id = Twitter.read_twitter_pkl()[0][1]
-                twitter_id = Twitter.read_twitter_pkl()[0][0]
-                channel_id = Match_wich_account().get_channel_id(twitter_channel_id)
-                minive_link = Match_wich_minive().get_minive_link(str(twitter_channel_id))
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+file_path_cache = '../assets/Twitter_cache_dict.pkl'
 
-                key_to_search = Twitter.read_twitter_pkl()[0][2]
-                if key_to_search in Twitter.read_twitter_dict():
-                    value = Twitter.read_twitter_dict()[key_to_search]
-                    twitter_author = value[0]
-                    twitter_link = value[1]
-                    twitter_entry = value[2]
-                    post_time = value[3]
-                    img_count = value[5]
-                    twitter_all_img = value[6]
-            except IndexError:
-                logging.error('No data in the twitter_cache.pkl')
 
-            channel = self.bot.get_channel(channel_id)
+def discord_twitter():
 
-            embed = discord.Embed(title="", color=discord.Color.purple())
-            embed.set_author(
-                name=twitter_author + '   ' +
-                '@(' + str(twitter_id) + ') ',
-                icon_url="https://i.meee.com.tw/caHwoj6.png",
-                url=twitter_link
-            )
+    global TOKEN
 
-            embed.add_field(
-                name='',
-                value=twitter_entry,
-                inline=True,
-            )
+    async def check_file_and_trigger_send_embed():
+        print(
+            '\033[38;2;255;179;255mKeeping detecting Twitter_cache_dict.pkl length...\033[m')
+        while True:
+            if os.path.exists(file_path_cache):
+                with open(file_path_cache, 'rb') as pkl:
+                    data = pickle.load(pkl)
+                    if len(data) >= 1:
+                        print(f"{datetime.datetime.now()} - Data: {data}")
+                        await asyncio.sleep(1)
+                        await send_embed()
 
-            embed.set_footer(text='' + post_time +
-                             '   🖼️ ' + str(img_count),
-                             icon_url=str(minive_link))
-            # TODO: Footer 也做成字典隨頻道更換圖片
+            await asyncio.sleep(0.5)
 
-            def format_urls(url_string):
-                url_list = url_string.split(" ")
-                formatted_urls = []
-                for index, url in enumerate(url_list):
-                    markdown_url = f"[{index+1}]({url})"
-                    formatted_urls.append(markdown_url)
-                formatted_urls_str = ' '.join(formatted_urls)
-                return formatted_urls_str
+    @client.event
+    async def on_ready():
+        print(f"目前登入身份 --> {client.user}")
+        await check_file_and_trigger_send_embed()
 
-            formatted_urls_str = format_urls(twitter_all_img)
-            await channel.send(str(formatted_urls_str))
+    @client.event
+    async def send_embed():
+        try:
+            # Twitter 對應的 channel ID
+            twitter_channel_id = Twitter.read_twitter_pkl()[0][1]
+            twitter_id = Twitter.read_twitter_pkl()[0][0]
+            channel_id = Match_wich_account().get_channel_id(twitter_channel_id)
+            minive_link = Match_wich_minive().get_minive_link(str(twitter_channel_id))
 
-            button_url = twitter_link
+            key_to_search = Twitter.read_twitter_pkl()[0][2]
+            if key_to_search in Twitter.read_twitter_dict():
+                value = Twitter.read_twitter_dict()[key_to_search]
+                twitter_author = value[0]
+                twitter_link = value[1]
+                twitter_entry = value[2]
+                post_time = value[3]
+                img_count = value[5]
+                twitter_all_img = value[6]
+        except IndexError:
+            logging.error('No data in the twitter_cache.pkl')
 
-            button_view = ButtonView(url=button_url)
+        channel = client.get_channel(channel_id)
 
-            DISCORD_send = await channel.send(embed=embed, view=button_view)
+        embed = discord.Embed(title="", color=discord.Color.purple())
+        embed.set_author(
+            name=twitter_author + '   ' +
+            '@(' + str(twitter_id) + ') ',
+            icon_url="https://i.meee.com.tw/caHwoj6.png",
+            url=twitter_link
+        )
 
-            if DISCORD_send:
-                Twitter_PKL_popup.remove_first_values_from_twitter(1)
-                print('\x1b[38;2;255;255;51m發送到　\x1b[0m' + twitter_channel_id + ' ' +
-                      twitter_id + '　\x1b[91mOK，PKL Cache已經清除\x1b[0m')
+        embed.add_field(
+            name='',
+            value=twitter_entry,
+            inline=True,
+        )
+
+        embed.set_footer(text='' + post_time +
+                         '   🖼️ ' + str(img_count),
+                         icon_url=str(minive_link))
+
+        def format_urls(url_string):
+            url_list = url_string.split(" ")
+            formatted_urls = []
+            for index, url in enumerate(url_list):
+                markdown_url = f"[{index+1}]({url})"
+                formatted_urls.append(markdown_url)
+            formatted_urls_str = ' '.join(formatted_urls)
+            return formatted_urls_str
+
+        formatted_urls_str = format_urls(twitter_all_img)
+        await channel.send(str(formatted_urls_str))
+
+        button_url = twitter_link
+
+        button_view = ButtonView(url=button_url)
+
+        DISCORD_send = await channel.send(embed=embed, view=button_view)
+
+        if DISCORD_send:
+            Twitter_PKL_popup.remove_first_values_from_twitter(1)
+            print('\x1b[38;2;255;255;51m發送到　\x1b[0m' + twitter_channel_id + ' ' +
+                  twitter_id + '　\x1b[91mOK，PKL Cache已經清除\x1b[0m')
         else:
             print('Discord 消息發送失敗')
+            logging.error('Discord 消息發送失敗')
 
-    def run(self):
-        self.bot.run(self.TOKEN)
+    client.run(TOKEN)
 
 
-# 呼叫Discord bot running
-Discord_Twitter().run()
+if __name__ == "__main__":
+    discord_twitter()
