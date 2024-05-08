@@ -127,10 +127,10 @@ class Twitter:
                         twitter_imgs_description) == 0 else twitter_imgs_description
 
                     # 如果正則表達式匹配到 twitter_imgs_description 僅有圖片貼文的 URL，將提取的Twitter圖片的URL中的jpg格式轉換為webp格式
-                    # EX: https://pbs.twimg.com/media/example?format=jpg -> https://pbs.twimg.com/media/example?format=webp
+                    # EX: https://pbs.twimg.com/media/example?format=jpg -> https://pbs.twimg.com/media/example?format=jpg&name=large
                     twitter_imgs_description = re.sub(
                         r"(https://pbs\.twimg\.com/media/[^/?]+)\?format=jpg",
-                        r"\1?format=webp",
+                        r"\1?format=jpg&name=large",
                         twitter_imgs_description,
                     )
 
