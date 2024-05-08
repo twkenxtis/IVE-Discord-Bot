@@ -11,18 +11,52 @@ import feedparser
 import http_request
 
 
+class Twitter_PKL_popup:
+    def remove_first_values_from_twitter(count):
+        file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)
+                            ), "../../assets/Twitter_cache_dict.pkl"
+        )
+
+        if not os.path.exists(file_path):
+            print("Error: File not found.")
+            return
+        try:
+            with open(file_path, "rb") as f:
+                loaded_list = pickle.load(f)
+        except FileNotFoundError:
+            print("Error: Unable to load data from file.")
+            return
+        if not loaded_list:
+            print("List is empty now.")
+            return
+        if count > len(loaded_list):
+            print(
+                f"Error: List length ({len(loaded_list)}) is smaller than count ({count})."
+            )
+            return
+        removed_values = []
+        for _ in range(count):
+            removed_values.append(loaded_list.pop(0))
+        if len(loaded_list) == 1 and not loaded_list[0]:
+            print("Only one empty list remaining. Deleting it.")
+            loaded_list = []
+        with open(file_path, "wb") as f:
+            pickle.dump(loaded_list, f)
+
+
 class Twitter:
 
     def twitter_rss():
-        
+
         twitter_rss_dict = Twitter_Dict_Manager()
-        
+
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         with open('../../assets/Twitter_cache_dict.pkl', 'rb') as f:
             temp = pickle.load(f)
         # 取第一個元素的前兩個字元，轉換為字串後連接起來，再去除方括號和單引號
         twitter_account_name = ''.join(str(temp[0][0:1])).strip("[]'")
-        
+
         # Development URL for testing #TODO:URL要改成RSSHUB的網址
         rss_request = [
             f'http://127.0.0.1:8153/{twitter_account_name}.xml']  # 開發用網址
@@ -32,9 +66,12 @@ class Twitter:
 
             # 使用 start_requests 方法發起請求，並且設定重試次數為1，避免被網站的流量限制
             # Please keep the number at 1 to avoid rate limiting
-            each_request.start_requests(1) # Default request 1
-            
-            if each_request.get_response_content() is not None:
+            each_request.start_requests(1)  # Default request 1
+
+            if each_request.get_response_content() is None:
+                Twitter_PKL_popup.remove_first_values_from_twitter(1)
+                print('\x1b[91m異常處理中.... PKL Cache 已經清除\x1b[0m')
+            else:
                 gmt_converter = TimeZoneConverter(
                     "GMT", "Asia/Taipei"
                 )  # Default ("GMT", "Asia/Taipei")
@@ -73,7 +110,8 @@ class Twitter:
                             _.group().replace("&amp;name=orig", ""))
 
                     # 計算有多少張照片或影片，並將其存儲在 twitter_description_imgs_count 變數中
-                    twitter_description_imgs_count = len(twitter_imgs_description)
+                    twitter_description_imgs_count = len(
+                        twitter_imgs_description)
 
                     """    
                     將 twitter_imgs_description List中的每個元素都轉換為String，然後使用空格將這些String連接起來，得到最終的結果字符串
@@ -89,10 +127,10 @@ class Twitter:
                         twitter_imgs_description) == 0 else twitter_imgs_description
 
                     # 如果正則表達式匹配到 twitter_imgs_description 僅有圖片貼文的 URL，將提取的Twitter圖片的URL中的jpg格式轉換為webp格式
-                    # EX: https://pbs.twimg.com/media/example?format=jpg -> https://pbs.twimg.com/media/example?format=jpg&name=large
+                    # EX: https://pbs.twimg.com/media/example?format=jpg -> https://pbs.twimg.com/media/example?format=webp
                     twitter_imgs_description = re.sub(
                         r"(https://pbs\.twimg\.com/media/[^/?]+)\?format=jpg",
-                        r"\1?format=jpg&name=large",
+                        r"\1?format=webp",
                         twitter_imgs_description,
                     )
 
@@ -122,7 +160,6 @@ class Twitter:
                         twitter_imgs_description,  # Photo from Twitter post
                     )
 
-                    # Line 20 -Class twitter_dict and twitter_dict Dictionary
                     twitter_rss_dict.twitter_dict[hashlib.md5(
                         entry.link.encode("utf-8")).hexdigest()] = tuple_of_dict
 
@@ -145,25 +182,48 @@ class Twitter:
                         f"\033[0m\033[38;5;118m{twitter_description_imgs_count}\033[0m",
                     )
 
-        # 在處理完所有 RSS 條目後保存數據到 JSON 文件中
-        # 將 dict_tuple 儲存在 twitter_dict.twitter_dict Dictionary中，{MD5=key}:{tuple=value}
-        twitter_rss_dict.save_to_json()
+                    # 在處理完所有 RSS 條目後保存數據到 JSON 文件中
+                    # 將 dict_tuple 儲存在 twitter_dict.twitter_dict Dictionary中，{MD5=key}:{tuple=value}
+                    MD5 = hashlib.md5(entry.link.encode('utf-8')).hexdigest()
+                    twitter_rss_dict.update_twitter_dict({MD5: tuple_of_dict})
+
 
 class Twitter_Dict_Manager:
-
-    def __init__(self):
+    def __init__(self, filename='../../assets/Twitter_dict.json'):
         self.twitter_dict = {}
+        self.filename = filename
+        self.load_from_json()
 
-    def load_from_json(self, filename='../../assets/Twitter_dict.json'):
-        if os.path.exists(filename):
-            with open(filename, "r") as json_file:
-                self.twitter_dict = json.load(json_file)
+    def load_from_json(self):
+        if os.path.exists(self.filename):
+            if os.path.getsize(self.filename) > 0:
+                os.chdir(os.path.dirname(os.path.abspath(__file__)))
+                with open(self.filename, "r") as json_file:
+                    file_content = json_file.read()
+                    if file_content:
+                        self.twitter_dict = json.loads(file_content)
+            else:
+                self.twitter_dict = {}
 
-    def save_to_json(self, filename='../../assets/Twitter_dict.json'):
-        with open(filename, "w") as json_file:
-            json.dump(self.twitter_dict, json_file, indent=4)
-            
-            
+    def save_to_json(self):
+        # 讀取現有的JSON數據
+        existing_data = {}
+        if os.path.exists(self.filename) and os.path.getsize(self.filename) > 0:
+            with open(self.filename, "r") as json_file:
+                existing_data = json.load(json_file)
+
+        # 將新數據追加到已有數據中
+        existing_data.update(self.twitter_dict)
+
+        # 寫入JSON檔案
+        with open(self.filename, "w") as json_file:
+            json.dump(existing_data, json_file, indent=4)
+
+    def update_twitter_dict(self, new_data):
+        self.twitter_dict.update(new_data)
+        self.save_to_json()
+
+
 class TimeZoneConverter:
     def __init__(self, from_tz, to_tz):
 
