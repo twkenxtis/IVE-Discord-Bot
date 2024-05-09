@@ -11,6 +11,10 @@ from twitter.API_match_Twitter_account import (
 from twitter.Twitter_rss_process import *
 
 
+# 是否開啟轉推阻擋功能 Default: True
+re_Tweet_switch = True
+
+
 class API_Twitter:
     def __init__(self):
         self.Twitter_cache_list = []
@@ -30,6 +34,13 @@ class API_Twitter:
         DEV_PATH = os.path.join('decode_printer.txt')
         # 正式環境需讀取 000003_debin.log 檔案的內容
 
+        # value re_Tweet_check 得到匹配到的轉推來源帳號 None代表沒有轉推
+        with open(DEV_PATH, 'r', encoding='UTF-8', errors='ignore') as f:
+            re_Tweet_check = f.read()
+
+        re_Tweet_check = TwitterEntry_re_Tweet.entry_url_process(
+            re_Tweet_check)  # 得到匹配到的轉推來源帳號或None等於非轉推
+
         # match is Twitter account or not
         match_output_tuple = TwitterAccountProcessor(
             str(DEV_PATH)
@@ -44,12 +55,19 @@ class API_Twitter:
         if match_output_tuple is None:
             SystemExit(0)
         else:
-            return match_output_tuple
+            return match_output_tuple, re_Tweet_check
 
     def process_twitter_account(self):
-        match_output_tuple = self.match_twitter_account()
 
-        if match_output_tuple is None and Error_Log_Handler.error_log() is None:
+        match_output_tuple, re_Tweet_check = self.match_twitter_account()
+
+        if re_Tweet_check == match_output_tuple[1]:
+            print('\033[91mWarning: \033[33m\033[38;2;255;255;179m轉推阻擋已開啟，本次請求 \033[91m已阻擋 \033[33m'
+                  '\033[38;2;255;255;179m若要關閉\033[38;2;255;255;179m此功能在\033[0m'
+                  '\033[36m Twitter.py\033[91m \033[38;2;255;255;179m'
+                  '\033[0m將 \033[36mre_Tweet_switch\033[0m 變數設為\033[33m \033[36mFalse\033[0m')
+            SystemExit(0)
+        elif match_output_tuple is None and Error_Log_Handler.error_log() is None:
             SystemExit(0)
         # match_output_tuple[0] is binary search bool
         elif bool(match_output_tuple[0]) is False:
@@ -96,6 +114,32 @@ class API_Twitter:
         # 將更新後的數據寫入文件
         with open(self.Twitter_cache_dict_pkl, 'wb') as file:
             pickle.dump(existing_data, file)
+
+
+class TwitterEntry_re_Tweet:
+    @staticmethod
+    def entry_url_process(input_data):
+        # match twitter entry
+        tw_regex = re.findall(
+            r'https://twitter.com/.*?tweet\b', input_data, re.DOTALL)
+        tw_regex_url = re.findall(
+            r'https://twitter.com/(?:#1tweet|")', input_data)
+
+        match_accounts = None
+        try:
+            for first_filter in tw_regex:
+                if first_filter != tw_regex_url[0]:
+                    filtered_entry = [re.sub(
+                        r"(https?://[A-Za-z0-9./?=_:\-~]+)(?:[A-Za-z0-9./?=_:\-~]+)?$", '', first_filter.replace('\n', ''))]
+                    matches_data = [re.findall(
+                        r"(?i)@([A-Za-z0-9_]{1,})", first_filter) for _ in filtered_entry]
+                    match_accounts = ' '.join(
+                        [_[0] for _ in matches_data]) if matches_data else None
+        except IndexError:
+            match_accounts = None
+
+        # return 匹配到的轉推來源帳號或 return None
+        return match_accounts
 
 
 if __name__ == '__main__':
