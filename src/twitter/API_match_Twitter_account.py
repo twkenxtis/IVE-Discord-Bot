@@ -6,58 +6,7 @@ import re
 import subprocess
 import time
 
-
-class ColoredLogHandler(logging.StreamHandler):
-    def __init__(self, fmt=None, file_path=None, debug_file_path=None):
-        # 呼叫父類別的建構函數
-        super().__init__()
-
-        # 定義不同等級的顏色映射
-        self.color_mapping = {
-            logging.DEBUG: '\033[92m',           # 浅绿色
-            logging.INFO: '\033[96m',            # 青色
-            logging.WARNING: '\033[38;5;214m',   # 金黃色
-            logging.ERROR: '\x1b[31m',           # 深红色
-            logging.CRITICAL:  '\033[91m',      # 深紫红色
-        }
-        self.reset_color = '\033[0m'  # 重置颜色
-        self._fmt = fmt or logging.BASIC_FORMAT
-
-        # 如果指定了文件路徑，則創建一個文件處理器
-        if file_path:
-            self.file_handler = logging.FileHandler(file_path)
-            self.file_handler.setLevel(logging.WARNING)
-            self.file_formatter = logging.Formatter(
-                '%(asctime)s - %(levelname)s - %(message)s')
-            self.file_handler.setFormatter(self.file_formatter)
-
-        # 如果指定了 debug 文件路徑，則創建一個 debug 文件處理器
-        if debug_file_path:
-            self.debug_file_handler = logging.FileHandler(debug_file_path)
-            self.debug_file_handler.setLevel(logging.DEBUG)
-            self.debug_file_formatter = logging.Formatter(
-                '%(asctime)s - %(levelname)s - %(message)s')
-            self.debug_file_handler.setFormatter(self.debug_file_formatter)
-
-    def format(self, record):
-        # 取得日誌訊息的顏色格式
-        color_format = (
-            f"{self.color_mapping.get(record.levelno, '')}{self._fmt}{self.reset_color}"
-        )
-        formatter = logging.Formatter(color_format)
-        return formatter.format(record)
-
-    def emit(self, record):
-        # 將日誌訊息輸出到控制台
-        super().emit(record)
-
-        # 如果有文件處理器，則將日誌訊息寫入到文件
-        if hasattr(self, 'file_handler') and record.levelno >= logging.WARNING:
-            self.file_handler.emit(record)
-
-        # 如果有 debug 文件處理器，則將日誌訊息寫入到 debug 文件
-        if hasattr(self, 'debug_file_handler') and record.levelno == logging.DEBUG:
-            self.debug_file_handler.emit(record)
+from custom_log import ColoredLogHandler
 
 
 class TwitterAccountProcessor:
@@ -85,7 +34,7 @@ class TwitterAccountProcessor:
             with open(self.twitter_account, "r", encoding="utf-8") as twitter_account_data:
                 input_data_file = twitter_account_data.read()
 
-             # 處理 Twitter 帳戶信息
+            # 處理 Twitter 帳戶信息
             input_data_file, twitter_username, twitter_post_id = (
                 self.process_twitter_account_info(
                     input_data_file,
@@ -141,79 +90,17 @@ class TwitterAccountProcessor:
             ),
             None,
         )
-        # 匹配/user/status/模式的内容
+        # 匹配/user/status/模式的內容
         twitter_username = re.search(
             r"/(?P<user>[A-Za-z0-9_]+)/status/", twitter_account_data
         )
-        # 匹配/status/user模式的内容
+        # 匹配/status/user模式的內容
         twitter_post_id = re.search(
             r"/status/(?P<user>[A-Za-z0-9_]+)", twitter_account_data
         )
         if twitter_username is None:
             twitter_post_id = None
         return twitter_account, twitter_username, twitter_post_id
-
-
-class TwitterEntry_Tag_Processor:
-    @staticmethod
-    def match_twitter_entry(input_entry: list):
-        entry_list = None
-        twitter_entry = None
-        # 使用正則表達式找出 Twitter entry
-        TWITTER_REGEX = re.findall(
-            r'https://twitter.com/.*?tweet\b', input_entry, re.DOTALL)
-        TWITTER_REGEX_URL = re.findall(
-            r'https://twitter.com/(?:#1tweet|")', input_entry)
-        for entry_list in TWITTER_REGEX:
-            if entry_list != TWITTER_REGEX_URL[0]:
-                twitter_entry = [(entry_list).replace('\n', '')]
-        return twitter_entry
-
-    @ staticmethod
-    def extract_text(i):
-        # 使用正則表達式提取引號包裹的文字
-        pattern = r'"[^"]+"'
-        match = re.search(pattern, i)
-        if match:
-            return match.group(0)[1:-1]  # 移除引號
-        return None
-
-    @ classmethod
-    def search_with_hashmap(cls, tag_list):
-        # 設定當前的路徑為工作目錄
-        os.chdir(os.path.dirname(os.path.abspath(__file__)))
-        # 讀取 ive_hashtag.pkl 文件
-        with open('../../assets/ive_hashtag.pkl', 'rb') as _pkl:
-            pkl_dict = pickle.load(_pkl)
-
-        found_values = []
-        found_flag = False
-        is_equal = True
-
-        # 遍歷搜索關鍵詞列表
-        for n in tag_list:
-            # 將搜索鍵轉換為大寫形式
-            n_upper = n.upper()
-            # 對於哈希表中的每個鍵,將其轉換為大寫形式進行比較
-            for key, value in pkl_dict.items():
-                if key == n_upper:
-                    found_values.append(value)
-                    found_flag = True
-
-        if found_flag:
-            # 將找到的值轉換為小寫的嵌套列表
-            found_values_lower = [
-                [each.lower() for each in sub_list] for sub_list in found_values
-            ]
-            # 比較找到的 hashtag 值是否全部相同
-            base_list = found_values_lower[0]
-            for _ in range(1, len(found_values_lower)):
-                if base_list != found_values_lower[_]:
-                    is_equal = False
-                    break
-            return is_equal, found_values
-        else:
-            return False
 
 
 class Error_Log_Handler():
