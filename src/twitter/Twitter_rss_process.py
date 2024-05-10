@@ -8,286 +8,303 @@ import re
 from datetime import datetime
 
 import feedparser
-
 import http_request
 
 
 class Twitter:
 
     @staticmethod
-    def twitter_rss(twitter_account_name):
-
+    def start_request(twitter_account_name: str):
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
         twitter_rss_dict = Twitter_Dict_Manager()
-
-        # RSSHUB request
+        #TODO:Warring: DEV URL
         rss_request = f'http://127.0.0.1:8153/{twitter_account_name}.xml'
+        feed = Twitter.get_feed(rss_request)
+        Twitter.process_feed(feed, twitter_rss_dict)
 
-        each_request = http_request.HTTP3Requester(rss_request)
-
-        # 使用 start_requests 方法發起請求，並且設定重試次數為1，避免被網站的流量限制
-        # Please keep the number at 1 to avoid rate limiting
-        each_request.start_requests(1)  # Default request 1
-
+    @staticmethod
+    def get_feed(rss_request):
+        each_request = http_request.HTTP3Requester(str(rss_request))
+        each_request.start_requests(1)  # Default request 1 time.
         if each_request.get_response_content() is None:
             Twitter_PKL_popup.remove_first_values_from_twitter(1)
-            print('\x1b[91m異常處理中.... PKL Cache 已經清除\x1b[0m')
+            print('\033[91m異常處理中.... PKL Cache 已經清除\033[0m')
+            SystemExit(1)
         else:
-            gmt_converter = TimeZoneConverter(
-                "GMT", "Asia/Taipei"
-            )  # Default ("GMT", "Asia/Taipei")
+            # feedparser 解析 RSS 內容
+            return feedparser.parse(each_request.get_response_content())
 
-        # 使用 feedparser 解析 RSS 回應，並使用 get_response_content 方法來獲取回應的內容
-            feed = feedparser.parse(each_request.get_response_content())
-
+    @staticmethod
+    def process_feed(feed, twitter_rss_dict):
+        gmt_converter = TimeZoneConverter("GMT", "Asia/Taipei")
+        if feed is not None:
+            # 遍歷RSS描述內容
             for entry in feed.entries:
-                # 對於每個條目(entry)，利用 gmt_converter 物件將 GMT格式的發佈時間 (entry.published) 轉換為本地特定時區的時間(pub_date_tw)
-
+                # 轉自訂格式 GMT -> 240317 17:36
                 pub_date_tw = gmt_converter.convert_time_gmt_to_utc(
                     entry.published)
-
-                # 將條目的描述文字(entry.description)儲存在變數description中，以便後續處理和分析
                 description = entry.description
+                # 描述內容比較多要過濾掉多餘的內容
+                Twitter.process_entry(entry, pub_date_tw,
+                                      description, twitter_rss_dict)
 
-                # 定義Twitter URL常量，用於正則表達式模式
-                TWITTER_BASE_URI = r"https://pbs.twimg.com/"
-                TWITTER_MEDIA_URI = r"https://pbs.twimg.com/media/"
-                TWITTER_TWEET_VIDEO_URI = r"https://video.twimg.com/tweet_video/"
+    def process_entry(entry, pub_date_tw, description, twitter_rss_dict):
+        filtered_description_title = Twitter.filter_description(description)
+        # 從描述找出所有圖片的URL
+        twitter_imgs_description, twitter_description_imgs_count = (
+            Twitter._process_tweet_images(description)
+        )
+        # 創建字典value的Tuple 把RSS資訊全部放進去
+        Twitter._create_tuple_and_update_dict(
+            entry,
+            filtered_description_title,
+            pub_date_tw,
+            twitter_description_imgs_count,
+            twitter_imgs_description,
+            twitter_rss_dict,
+        )
 
-                # 使用正則表達式來匹配在 Twitter描述 (description) 中匹配所有圖片和影片的URL
-                img_pattern = re.compile(
-                    rf'{TWITTER_BASE_URI}[^"\']+?\.(?:jpg)|{TWITTER_MEDIA_URI}[^"\']+?\?format=jpg|{TWITTER_TWEET_VIDEO_URI}[^"\']+?\.(?:mp4)'
-                )
+    @staticmethod
+    def _process_tweet_images(description):
+        # 定義圖片和影片的正則表達式模式
+        PATTERN_1 = 'https://pbs.twimg.com/'
+        PATTERN_2 = 'https://pbs.twimg.com/media/'
+        PATTERN_3 = 'https://video.twimg.com/tweet_video/'
+        img_pattern = re.compile(
+            rf'{PATTERN_1}[^"\']+?\.(?:jpg)|{PATTERN_2}[^"\']+?\?format=jpg|{PATTERN_3}[^"\']+?\.(?:mp4)'
+        )
+        # 使用正則表達式在描述中查找所有圖片和影片的URL
+        replace_qp_url = img_pattern.finditer(description)
+        # 初始化存儲圖片URL的列表
+        twitter_imgs_description = []
+        # 遍歷 replace_qp_url 過濾出的所有Twitter描述中的URL
+        for count in replace_qp_url:
+            # 原始URL
+            original_url = count.group()
+            # 如果URL以 ?format=jpg 结尾
+            if original_url.endswith("?format=jpg"):
+                # 在URL末尾添加字串 &name=orig 強制原始圖片大小
+                twitter_imgs_description.append(original_url + "&name=orig")
+            else:
+                # 如果URL不以 ?format=jpg 結尾
+                # 則直接將原始URL加入清單中(Twitter影片/縮圖等等...)
+                twitter_imgs_description.append(original_url)
+            
+        twitter_imgs_description
+        # 計算圖片和影片的數量
+        twitter_description_imgs_count = len(list(twitter_imgs_description))
+        # 將圖片URL列表轉換為字符串，以便保存到字典中
+        twitter_imgs_description = ' '.join(map(str, list(twitter_imgs_description)))
+        # 如果沒有圖片URL，將其設置為None
+        twitter_imgs_description = None if len(
+            list(twitter_imgs_description)) == 0 else str(twitter_imgs_description)
+        # 返回處理後的所有圖片網址和總圖片數量
+        return str(twitter_imgs_description), int(twitter_description_imgs_count)
 
-                # 使用 re.finditer 方法匹配所有匹配項，並將結果存儲在 replace_media_str 變數中
-                replace_qp_url = img_pattern.finditer(description)
+    @staticmethod
+    def _create_tuple_and_update_dict(
+        entry,
+        filtered_description_title,
+        pub_date_tw,
+        twitter_description_imgs_count,
+        twitter_imgs_description,
+        twitter_rss_dict,
+    ):
 
-                # 初始化列表以供存儲 twitter_imgs_description 格式化的 URL
-                twitter_imgs_description = []
+        # 存進字典的Tuple
+        tuple_of_dict = (
+            entry.author,
+            entry.link,
+            filtered_description_title,
+            pub_date_tw,
+            f"{SystemTime.format_current_time()}",
+            twitter_description_imgs_count,
+            twitter_imgs_description,
+        )
 
-                # 獲取匹配到的 URL 將 '?&amp;name=orig' 替換為空字符串 (List comprehension) 賦予List新的匹配值
-                for _ in replace_qp_url:
-                    twitter_imgs_description.append(
-                        _.group().replace("&amp;name=orig", ""))
+        # 把Twitter貼文網址MD5當Key
+        MD5 = hashlib.md5(entry.link.encode("utf-8")).hexdigest()
+        # 把字典丟到update_twitter_dict
+        twitter_rss_dict.update_twitter_dict({MD5: tuple_of_dict})
 
-                # 計算有多少張照片或影片，並將其存儲在 twitter_description_imgs_count 變數中
-                twitter_description_imgs_count = len(
-                    twitter_imgs_description)
-
-                """    
-                將 twitter_imgs_description List中的每個元素都轉換為String，然後使用空格將這些String連接起來，得到最終的結果字符串
-                使用 .join(...) 將 map() 函數返回的結果列表中的元素連接為一個字符串，並在元素之間添加一個空格
-                然後，將連接後的字符串重新賦值給 twitter_imgs_description 變數
-                最終，得到有空格分開的Twitter圖片或影片的網址
-                """
-                twitter_imgs_description = ' '.join(
-                    map(str, twitter_imgs_description))
-
-                # 如果正則表達式沒有匹配到圖片或影片的URL，twitter_imgs_description 會是 None
-                twitter_imgs_description = None if len(
-                    twitter_imgs_description) == 0 else twitter_imgs_description
-
-                # 如果正則表達式匹配到 twitter_imgs_description 僅有圖片貼文的 URL，將提取的Twitter圖片的URL中的jpg格式轉換為webp格式
-                # EX: https://pbs.twimg.com/media/example?format=jpg -> https://pbs.twimg.com/media/example?format=jpg&name=orig
-                twitter_imgs_description = re.sub(
-                    r"(https://pbs\.twimg\.com/media/[^/?]+)\?format=jpg",
-                    r"\1?format=jpg&name=orig",
-                    twitter_imgs_description,
-                )
-
-                # 針對 description 捕獲所有 <img src=" 或 <video controls=" 或 <video src=" 之前的所有內容，傳遞給 filtered_description_title 變數
-                filtered_description_title = re.search(
-                    r'((?:.|\n)*?)(?:<img src="|<video controls="|<video src=")',
-                    description,
-                )
-
-                # 只提取匹配結果中的第一個捕獲組的內容，並將其存儲在 filtered_description_title 變數中
-                if filtered_description_title:
-                    # re 把 description 中所有的 <br> <br/> 標籤換成換行符號
-                    filtered_description_title = re.sub(
-                        r"<br\s*/?>", "\n", filtered_description_title.group(1))
-                else:
-                    filtered_description_title = None
-
-                # 建立一個 Tuple 用來存放遍歷的每個條目資訊，並將其存儲在 dict_tuple 變數中
-                tuple_of_dict = (
-                    entry.author,
-                    entry.link,
-                    filtered_description_title,  # Author content from the post
-                    pub_date_tw,  # Asia/Taipei is the timezone of pub_date_tw
-                    # system current time.
-                    f"{SystemTime.format_current_time()}",
-                    twitter_description_imgs_count,  # How many photo from post
-                    twitter_imgs_description,  # Photo from Twitter post
-                )
-
-                twitter_rss_dict.twitter_dict[hashlib.md5(
-                    entry.link.encode("utf-8")).hexdigest()] = tuple_of_dict
-
-                print(
-                    "───────────────────────────────────────────────────────────────────────────────────────\n"
-                    # Grey System current time
-                    f"\033[90m{SystemTime.format_current_time()}\033[0m",
-                    # post link MD5 hash
-                    f"\033[0m\033[38;5;218m{hashlib.md5(entry.link.encode('utf-8')).hexdigest()}\033[0m",
-                    # Red For Author Name
-                    f"\033[38;2;255;102;102m{entry.author}\033[0m\n"
-                    # Author content from the post
-                    f"{filtered_description_title.strip()}\n",
-                    # Photo from Twitter post
-                    f"\033[38;2;255;194;153m{twitter_imgs_description}\033[0m\n",
-                    f"\033\033[38;5;69m{entry.link}\033[0m",  # Blue Link
-                    # Asia/Taipei timezone and custom format EX: 240422 22:32
-                    f"{pub_date_tw}",
-                    # Green The post numbers of photos
-                    f"\033[0m\033[38;5;118m{twitter_description_imgs_count}\033[0m",
-                )
-
-                # 在處理完所有 RSS 條目後保存數據到 JSON 文件中
-                # 將 dict_tuple 儲存在 twitter_dict.twitter_dict Dictionary中，{MD5=key}:{tuple=value}
-                MD5 = hashlib.md5(entry.link.encode('utf-8')).hexdigest()
-                twitter_rss_dict.update_twitter_dict({MD5: tuple_of_dict})
-
-                os.chdir(os.path.dirname(os.path.abspath(__file__)))
-                Twitter_cache_dict_pkl = '../../assets/Twitter_cache_dict.pkl'
-
-            def match_ive_members():
-                os.chdir(os.path.dirname(os.path.abspath(__file__)))
-                Twitter_cache_dict_pkl = '../../assets/Twitter_cache_dict.pkl'
-
-                with open(Twitter_cache_dict_pkl, 'rb') as file:
-                    pkl_data = pickle.load(file)
-
-                if os.path.isfile('../../assets/Twitter_dict.json'):
-                    with open('../../assets/Twitter_dict.json', 'r') as j:
-                        twitter_dict = json.load(j)
-
-                MD5 = pkl_data[0][1]
-                if MD5 in twitter_dict:
-                    value = twitter_dict[MD5]
-                    post_entry = str(value[2].strip())
-
-                hashtags = [h for h in post_entry.split() if h.startswith('#')]
-
-                match_tags = TwitterEntry_Tag_Processor.match_twitter_entry(
-                    hashtags)
-                if match_tags is False:
-                    match_tags = list('GROUPS')
-                    return match_tags
-                elif len(match_tags) > 1:
-                    match_tags = list(match_tags[1][0])
-                    return match_tags
-
-            def save_to_pkl(match_tags):
-                # 開始存入 value 到 /assets/Twitter_cache_dict.pkl
-                try:
-                    with open(Twitter_cache_dict_pkl, 'rb') as file:
-                        existing_data = pickle.load(file)
-                except FileNotFoundError:
-                    with open(Twitter_cache_dict_pkl, 'wb') as pkl:
-                        pickle.dump(match_tags, pkl)
-                        existing_data = []
-                    logging.warning(
-                        '  /assets/Twitter_cache_dict.pkl 遺失! 已經初始化，程式可能會產生異常'
-                    )
-
-                # 將新的數據追加到現有數據中
-                existing_data.append(match_tags)
-
-                # 將更新後的數據寫入文件
-                with open(Twitter_cache_dict_pkl, 'wb') as file:
-                    pickle.dump(existing_data, file)
-
-            save_to_pkl(match_ive_members())
+    @staticmethod
+    def filter_description(description):
+        # 從RSS描述中找出所有的圖片連結
+        filtered_description_title = re.search(
+            r'((?:.|\n)*?)(?:<img src="|<video controls="|<video src=")', description
+        )
+        # 從描述中過濾出完整的貼文標題 <br> 標籤，換成 "\n"
+        if filtered_description_title:
+            filtered_description_title = re.sub(
+                r"<br\s*/?>", "\n", filtered_description_title.group(1)
+            )
+        else:
+            filtered_description_title = None
+        return str(filtered_description_title)
 
 
 class Twitter_Dict_Manager:
+
     def __init__(self, filename='../../assets/Twitter_dict.json'):
+        # 初始化 Twitter 字典管理器，設置文件名和字典
         self.twitter_dict = {}
         self.filename = filename
         self.load_from_json()
 
     def load_from_json(self):
-        if os.path.exists(self.filename):
-            if os.path.getsize(self.filename) > 0:
-                os.chdir(os.path.dirname(os.path.abspath(__file__)))
-                with open(self.filename, "r") as json_file:
-                    file_content = json_file.read()
-                    if file_content:
-                        self.twitter_dict = json.loads(file_content)
-            else:
-                self.twitter_dict = {}
+        # 檢查文件是否存在且大小大於0
+        if os.path.exists(self.filename) and os.path.getsize(self.filename) > 0:
+            # 將工作目錄設置為文件所在目錄
+            os.chdir(os.path.dirname(os.path.abspath(__file__)))
+            # 打開 JSON 文件並讀取其內容
+            with open(self.filename, "r") as json_file:
+                file_content = json_file.read()
+                # 如果文件內容不為空，則將其轉換為字典並賦值給 twitter_dict
+                self.twitter_dict = json.loads(
+                    file_content) if file_content else {}
+        else:
+            # 如果文件不存在或大小為0，則初始化 twitter_dict 為空字典
+            self.twitter_dict = {}
 
     def save_to_json(self):
-        # 讀取現有的JSON數據
+        # 將 Twitter 字典保存到 JSON 文件中
         existing_data = {}
         if os.path.exists(self.filename) and os.path.getsize(self.filename) > 0:
             with open(self.filename, "r") as json_file:
                 existing_data = json.load(json_file)
 
-        # 將新數據追加到已有數據中
         existing_data.update(self.twitter_dict)
 
-        # 寫入JSON檔案
         with open(self.filename, "w") as json_file:
             json.dump(existing_data, json_file, indent=4)
 
-    def update_twitter_dict(self, new_data):
-        self.twitter_dict.update(new_data)
+    def update_twitter_dict(self, new_data: dict):
+        # 更新 Twitter 字典並保存到 JSON 文件中
+        self.twitter_dict.update(dict(new_data))
         self.save_to_json()
 
 
-class TimeZoneConverter:
-    def __init__(self, from_tz, to_tz):
+# 查找所有標籤並匹配IVE成員是誰或不只一人
+class TwitterMatcher:
 
+    # 定義類變量，用於指定pickle文件的路徑
+    Twitter_cache_dict_pkl = '../../assets/Twitter_cache_dict.pkl'
+
+    def __init__(self):
+        # 初始化實例變量match_tags為None，用於儲存匹配到的標籤
+        self.match_tags = None
+
+    def start_match(self):
+        # 開始匹配流程：首先匹配IVE成員，然後將結果保存至pickle文件
+        self.match_ive_members()
+        self.save_to_pkl()
+
+    def match_ive_members(self):
+        # 從pickle文件讀取數據，然後從JSON文件讀取Twitter字典進行匹配
+        with open(self.Twitter_cache_dict_pkl, 'rb') as file:
+            pkl_data = pickle.load(file)
+        with open('../../assets/Twitter_dict.json', 'r') as j:
+            twitter_dict = json.load(j)
+
+        # 檢查pkl_data是否不為空
+        if len(list(pkl_data)) >= 1:
+            MD5 = pkl_data[0][1]
+            # 如果pkl中的MD5值存在於twitter字典中，則從字典中取出相應值
+            if MD5 in twitter_dict:
+                value = twitter_dict[MD5]
+                post_entry = str(value[2].strip())
+                # 從帖子中提取所有以#開頭的標籤
+                hashtags = [h for h in post_entry.split() if h.startswith('#')]
+
+                # 使用提取的標籤匹配標籤並保存到self.match_tags
+                self.match_tags = self.match_twitter_entry(hashtags)
+                
+                # 檢測標籤是哪位成員或多位成員 硬編碼GROUPS
+                if self.match_tags[0] is False:
+                    self.match_tags = ['GROUPS']
+                elif self.match_tags[0] is True:
+                    self.match_tags = list(self.match_tags[1][0])
+
+    def match_twitter_entry(self, hashtags):
+        # 調用TwitterEntry_Tag_Processor中的match_twitter_entry函數來匹配標籤
+        match_tags = TwitterEntry_Tag_Processor.match_twitter_entry(hashtags)
+        return list(match_tags)
+
+    def save_to_pkl(self):
+        try:
+            # 嘗試從pickle文件中讀取現有的數據
+            with open(self.Twitter_cache_dict_pkl, 'rb') as file:
+                existing_data = pickle.load(file)
+        except FileNotFoundError:
+            # 如果pickle文件不存在，創建一個新的文件並記錄警告信息
+            with open(self.Twitter_cache_dict_pkl, 'wb') as pkl:
+                pickle.dump(self.match_tags, pkl)
+                existing_data = []
+            logging.warning(
+                '  /assets/Twitter_cache_dict.pkl 遺失! 已經初始化，程式可能會產生異常'
+            )
+
+        # 如果存在現有數據，將新的匹配標籤追加到數據列表中
+        # 更新並添加到最尾部，然後保存到pickle文件
+        # [['qcpk0203', 'c682e42712551f88dfcefe076e2aeb93'], ['REI']]
+        if len(list(existing_data)) >= 1:
+            existing_data.append(self.match_tags)
+            with open(self.Twitter_cache_dict_pkl, 'wb') as file:
+                pickle.dump(existing_data, file)
+
+
+class TimeZoneConverter:
+
+    def __init__(self, from_tz, to_tz):
+        # 初始化方法，設定資訊來源的時區'from_tz'和目的地時區'to_tz'，並將這兩個時區物件保留在物件的屬性中
         self.from_tz = pytz.timezone(from_tz)
         self.to_tz = pytz.timezone(to_tz)
 
     def convert_time_gmt_to_utc(
-        self, time_str, format="%a, %d %b %Y %H:%M:%S %Z", output_format="%y%m%d %H:%M"
+        self, time_str, format="%a, %d %b %Y %H:%M:%S %Z", output_format="%Y/%m/%d %H:%M:%S"
     ):
-        # A time conversion method that converts a time string in a given time zone to a time string in a specified format in another time zone.
+        # 該方法將來源時區的時間字串轉換為目的地時區的時間字串
 
         time_obj = datetime.strptime(
             time_str, format
-        )  # Parsing a time string into a datetime object
+        )  # 將時間字串解析為datetime物件
         time_obj_from_tz = self.from_tz.localize(
             time_obj
-        )  # Add source time zone information to the time object
+        )  # 為時間物件增加來源時區資訊
         time_obj_to_tz = time_obj_from_tz.astimezone(
             self.to_tz
-        )  # Convert the time object to the target time zone.
+        )  # 將時間物件轉換為目的地時區
         return time_obj_to_tz.strftime(
             output_format
-        )  # Format the time object as a string and return the converted time string.
+        )  # 將時間物件格式化為字串，並返回轉換後的時間字串
 
     def format_time_slice(
-        self, time_str, format="%a, %d %b %Y %H:%M:%S %Z", output_format="%y%m%d %H:%M"
+        self, time_str, format="%a, %d %b %Y %H:%M:%S %Z", output_format="%Y%m%d %H:%M:%S"
     ):
-        # Time conversion method to convert a given GMT time string to a time string in a specified format in the UTC+8 time zone.
+        # 此方法用來將給定的GMT時間字串轉換為在UTC+8時區的特定格式時間字串
 
         return self.convert_time_gmt_to_utc(
             time_str, format, output_format
-        )  # Call the time zone converter for conversion
+        )  # 呼叫時區轉換器進行轉換
 
 
 class SystemTime:
     @staticmethod
-    def format_current_time(format_string="%m/%d %H:%M:%S"):
+    def format_current_time(format_string="%Y/%m/%d %H:%M:%S"):
         time_current = datetime.now()
         return time_current.strftime(format_string)
 
 
 class TwitterEntry_Tag_Processor:
+
     @staticmethod
-    def match_twitter_entry(hashtags: list):
-        hashtag_str = ' '.join(hashtags)
+    def match_twitter_entry(hashtags :list):
+        # 使用哈希映射搜索
         return TwitterEntry_Tag_Processor.search_with_hashmap(hashtags)
 
-    @ classmethod
+    @classmethod
     def search_with_hashmap(cls, tag_list):
-        # 設定當前的路徑為工作目錄
+        # 設置當前目錄為工作目錄
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         # 讀取 ive_hashtag.pkl 文件
         with open('../../assets/ive_hashtag.pkl', 'rb') as _pkl:
@@ -299,9 +316,11 @@ class TwitterEntry_Tag_Processor:
 
         # 遍歷搜索關鍵詞列表
         for n in tag_list:
-            # 將搜索鍵轉換為大寫形式
+
+            # 將搜索關鍵詞轉換為大寫形式
             n_upper = n.upper()
-            # 對於哈希表中的每個鍵,將其轉換為大寫形式進行比較
+
+            # 對於哈希表中的每個鍵，將其轉換為大寫形式進行比較
             for key, value in pkl_dict.items():
                 if key == n_upper:
                     found_values.append(value)
@@ -312,46 +331,60 @@ class TwitterEntry_Tag_Processor:
             found_values_lower = [
                 [each.lower() for each in sub_list] for sub_list in found_values
             ]
-            # 比較找到的 hashtag 值是否全部相同
+            # 檢查找到的 hashtag 值是否全部相同
             base_list = found_values_lower[0]
             for _ in range(1, len(found_values_lower)):
                 if base_list != found_values_lower[_]:
                     is_equal = False
                     break
-            return is_equal, found_values
+            return bool(is_equal), list(found_values)
         else:
+            # 如果未找到匹配的值，返回 False
             return False
 
 
 class Twitter_PKL_popup:
+
     def remove_first_values_from_twitter(count):
+        # 設定檔案路徑
         file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)
                             ), "../../assets/Twitter_cache_dict.pkl"
         )
 
+        # 檢查檔案是否存在
         if not os.path.exists(file_path):
-            print("Error: File not found.")
+            print("錯誤：找不到檔案")
             return
+
         try:
+            # 讀取 pickle 檔案中的資料
             with open(file_path, "rb") as f:
                 loaded_list = pickle.load(f)
         except FileNotFoundError:
-            print("Error: Unable to load data from file.")
+            print("錯誤：無法從檔案載入資料")
             return
+
+        # 檢查載入的資料是否為空
         if not loaded_list:
-            print("List is empty now.")
+            print("清單已經是空的了")
             return
+
+        # 檢查 count 是否大於清單長度
         if count > len(loaded_list):
-            print(
-                f"Error: List length ({len(loaded_list)}) is smaller than count ({count})."
-            )
+            print(f"錯誤：清單長度 ({len(loaded_list)}) 小於指定的數量 ({count})")
             return
+
+        # 移除指定數量的值
         removed_values = []
         for _ in range(count):
             removed_values.append(loaded_list.pop(0))
+
+        # 檢查是否只剩下一個空清單，若是則刪除它
         if len(loaded_list) == 1 and not loaded_list[0]:
-            print("Only one empty list remaining. Deleting it.")
+            print("只剩下一個空清單，刪除它")
             loaded_list = []
+
+        # 將更新後的資料存回 pickle 檔案
         with open(file_path, "wb") as f:
             pickle.dump(loaded_list, f)
