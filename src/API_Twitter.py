@@ -16,6 +16,7 @@ re_Tweet_switch = True
 
 
 class API_Twitter:
+    
     def __init__(self):
         self.Twitter_cache_list = []
         self.Twitter_cache_dict_pkl = "../assets/Twitter_cache_dict.pkl"
@@ -55,7 +56,7 @@ class API_Twitter:
         if match_output_tuple is None:
             SystemExit(0)
         else:
-            return match_output_tuple, re_Tweet_check
+            return tuple(match_output_tuple), re_Tweet_check
 
     def process_twitter_account(self):
 
@@ -67,7 +68,7 @@ class API_Twitter:
                   '\033[36m Twitter.py\033[91m \033[38;2;255;255;179m'
                   '\033[0m將 \033[36mre_Tweet_switch\033[0m 變數設為\033[33m \033[36mFalse\033[0m')
             SystemExit(0)
-        elif match_output_tuple is None and Error_Log_Handler.error_log() is None:
+        elif match_output_tuple is None:
             SystemExit(0)
         # match_output_tuple[0] is binary search bool
         elif bool(match_output_tuple[0]) is False:
@@ -92,7 +93,8 @@ class API_Twitter:
 
             self._save_to_pkl_()
 
-            Twitter.twitter_rss(Twitter_id)  # 呼叫HTTP RSS請求和存入字典的操作
+            Twitter.start_request(Twitter_id)  # 呼叫HTTP RSS請求和存入字典的操作
+            TwitterMatcher().start_match() # 查找HashTag標籤並匹配IVE成員是誰或不只匹配到一人
 
     def _save_to_pkl_(self):
         # 開始存入 value 到 ../assets/Twitter_cache_dict.pkl
@@ -103,42 +105,49 @@ class API_Twitter:
         except FileNotFoundError:
             with open(self.Twitter_cache_dict_pkl, 'wb') as pkl:
                 pickle.dump(list(self.Twitter_cache_list), pkl)
-                existing_data = ''
-            logging.warning(
-                '  /assets/Twitter_cache_dict.pkl 遺失! 已經初始化，程式可能會產生異常'
+                existing_data = []
+            logging.error(
+                '  /assets/Twitter_cache_dict.pkl 遺失! 已經初始化，資料可能會產生異常'
             )
 
         # 將新的數據追加到現有數據中
         existing_data.append(self.Twitter_cache_list)
-
+        
+        # [['qcpk0203', 'c682e42712551f88dfcefe076e2aeb93']]
         # 將更新後的數據寫入文件
         with open(self.Twitter_cache_dict_pkl, 'wb') as file:
             pickle.dump(existing_data, file)
 
 
 class TwitterEntry_re_Tweet:
+    
     @staticmethod
     def entry_url_process(input_data):
-        # match twitter entry
+        # 匹配 Twitter 轉推條目的 URL
         tw_regex = re.findall(
             r'https://twitter.com/.*?tweet\b', input_data, re.DOTALL)
+        # 匹配轉推條目的 URL
         tw_regex_url = re.findall(
             r'https://twitter.com/(?:#1tweet|")', input_data)
 
         match_accounts = None
         try:
             for first_filter in tw_regex:
+                # 如果匹配到的第一個 URL 不等於轉推條目的 URL
                 if first_filter != tw_regex_url[0]:
+                    # 將轉推條目的 URL 中的換行符替換為空白後進行過濾
                     filtered_entry = [re.sub(
                         r"(https?://[A-Za-z0-9./?=_:\-~]+)(?:[A-Za-z0-9./?=_:\-~]+)?$", '', first_filter.replace('\n', ''))]
+                    # 在過濾後的條目中查找匹配的 Twitter 帳號
                     matches_data = [re.findall(
                         r"(?i)@([A-Za-z0-9_]{1,})", first_filter) for _ in filtered_entry]
+                    # 將匹配到的 Twitter 帳號組合為一個字符串，如果未匹配到則返回 None
                     match_accounts = ' '.join(
                         [_[0] for _ in matches_data]) if matches_data else None
         except IndexError:
             match_accounts = None
 
-        # return 匹配到的轉推來源帳號或 return None
+        # 返回匹配到的轉推來源帳號或者返回 None
         return match_accounts
 
 
