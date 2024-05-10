@@ -1,10 +1,9 @@
-import os
 import asyncio
-import pickle
 import datetime
-
 import json
 import logging
+import os
+import pickle
 import urllib.parse
 
 import discord
@@ -71,6 +70,29 @@ logging.basicConfig(
         fmt=logging.BASIC_FORMAT, file_path='./logs\\discord\\log.txt', debug_file_path='./logs\\discord\\DEBUG_log.txt')],
 )
 
+class TimeDifferenceCalculator:
+    
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def calculate_time_difference(target_time_str):
+        # 將目標時間字符串轉換為 datetime 對象
+        target_time = datetime.datetime.strptime(target_time_str, "%Y/%m/%d %H:%M:%S")
+        # 獲取當前時間
+        current_time = datetime.datetime.now()
+        # 計算時間差
+        time_difference = current_time - target_time
+        # 將時間差轉換為秒
+        time_difference_seconds = time_difference.total_seconds()
+        return time_difference_seconds
+
+    @staticmethod
+    def main(input_time_cal):
+    # 格式為 "YYYY/MM/DD HH:MM:SS"
+        time_difference_seconds = TimeDifferenceCalculator.calculate_time_difference(input_time_cal)
+        return float(time_difference_seconds)
+
 
 class Twitter_PKL_popup:
     def remove_first_values_from_twitter(count):
@@ -90,11 +112,6 @@ class Twitter_PKL_popup:
             return
         if not loaded_list:
             print("List is empty now.")
-            return
-        if count > len(loaded_list):
-            print(
-                f"Error: List length ({len(loaded_list)}) is smaller than count ({count})."
-            )
             return
         removed_values = []
         for _ in range(count):
@@ -179,8 +196,8 @@ class Match_wich_account():
             "fallingin__fall": "1237020442183860276",
             "YUJIN": "1237020290987458643",
             "_yujin_an": "1237020290987458643",
-            "REI": "1237020461976522834",
-            "reinyourheart": "1237020461976522834",
+            "REI": "1238508631876567120",
+            "reinyourheart": "1238508631876567120",
             "WONYOUNG": "1237020545527054346",
             "for_everyoung10": "1237020545527054346",
             "LIZ": "1237020520092794950",
@@ -272,24 +289,41 @@ intents.message_content = True
 client = commands.Bot(command_prefix=None, intents=intents)
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-file_path_cache = '../assets/Twitter_cache_dict.pkl'
+file_path_PKL = '../assets/Twitter_cache_dict.pkl'
 
+def format_urls(url_string):
+    url_list = url_string.split(" ")
+    formatted_urls = [f"[{index+1}]({url})" for index, url in enumerate(url_list)]
+    return ' '.join(formatted_urls)
 
 def discord_twitter():
-
     global TOKEN
+    
+    async def send_discord_message(channel, ive_members, embed, button_view, twitter_id, formatted_urls_str, time_offset):
+        if time_offset < 10:
+            dc_message = await channel.send(str(formatted_urls_str))
+            dc_embed = await channel.send(embed=embed, view=button_view)
+            if dc_message and dc_embed:
+                Twitter_PKL_popup.remove_first_values_from_twitter(2)
+                print(f'發送到 {ive_members} 頻道 / Twitter帳號: {twitter_id} / OK，PKL Cache 已經清除')
+            else:
+                logging.critical('Discord 消息發送失敗')
+        else:
+            Twitter_PKL_popup.remove_first_values_from_twitter(2)
+            logging.info('DC 無法發送訊息，該訊息已經發過，準備清除PKL快取資料...')
 
     async def check_file_and_trigger_send_embed():
-        print(
-            '\033[38;2;255;179;255mKeeping detecting Twitter_cache_dict.pkl length...\033[m')
+        PKL_READ = False
+        print('\033[38;2;255;179;255mKeeping detecting Twitter_cache_dict.pkl length...\033[m')
+        
         while True:
-            if os.path.exists(file_path_cache):
-                with open(file_path_cache, 'rb') as pkl:
-                    data = pickle.load(pkl)
-                    if len(data) >= 1:
-                        print(f"{datetime.datetime.now()} - Data: {data}")
-                        await asyncio.sleep(1)
-                        await send_embed()
+            if os.path.exists(file_path_PKL):
+                with open(file_path_PKL, 'rb') as pkl:
+                    pkl_data = pickle.load(pkl)
+                    if len(pkl_data) >= 2:
+                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.datetime.now()}\n\033[38;2;102;140;255m{pkl_data}\033[0m")
+                        PKL_READ = True
+                        await send_embed(PKL_READ)
 
             await asyncio.sleep(0.5)
 
@@ -299,74 +333,54 @@ def discord_twitter():
         await check_file_and_trigger_send_embed()
 
     @client.event
-    async def send_embed():
-        try:
-            # Twitter 對應的 channel ID
-            twitter_channel_id = Twitter.read_twitter_pkl()[0][1]
-            twitter_id = Twitter.read_twitter_pkl()[0][0]
-            channel_id = Match_wich_account().get_channel_id(twitter_channel_id)
-            minive_link = Match_wich_minive().get_minive_link(str(twitter_channel_id))
+    async def send_embed(PKL_READ :bool):
+    # 讀取 Twitter_cache_dict.pkl
+        if PKL_READ is True:
+            ive_members = Twitter.read_twitter_pkl()[1][0] # REI or GROUPS
+            MD5 = Twitter.read_twitter_pkl()[0][1] # 字典的Key
+            
+            channel_id = Match_wich_account().get_channel_id(str(ive_members))
+            minive_link = Match_wich_minive().get_minive_link(str(ive_members))
 
-            key_to_search = Twitter.read_twitter_pkl()[0][2]
-            if key_to_search in Twitter.read_twitter_dict():
-                value = Twitter.read_twitter_dict()[key_to_search]
-                twitter_author = value[0]
-                twitter_link = value[1]
-                twitter_entry = value[2]
-                post_time = value[3]
-                img_count = value[5]
-                twitter_all_img = value[6]
-        except IndexError:
-            logging.error('No data in the twitter_cache.pkl')
+            key = MD5
+            if key in Twitter.read_twitter_dict():
+                value = Twitter.read_twitter_dict()[key]
+                twitter_author = value[0] # 七次撲空
+                twitter_link = value[1] # https://twitter.com/qcpk0203/status/1784927109426933969
+                twitter_id = value[1][20:27] # qcpk0203 slice[20:27]是因為網址是固定的長度
+                twitter_entry = value[2] # Twitter 貼文內容
+                post_time = value[3] # 2024/04/29 20:45:59 (貼文發布時間)
+                sys_time_from_dict = value[4]  # 2024/05/10 20:08:07 (存入資料時系統時間)
+                img_count = value[5] # int 照片數量
+                twitter_all_img = value[6] # 所有的照片網址
+                
+                time_offset = TimeDifferenceCalculator.main(sys_time_from_dict)
+                channel = client.get_channel(channel_id)
 
-        channel = client.get_channel(channel_id)
-
-        embed = discord.Embed(title="", color=discord.Color.purple())
-        embed.set_author(
-            name=twitter_author + '   ' +
-            '@(' + str(twitter_id) + ') ',
-            icon_url="https://i.meee.com.tw/caHwoj6.png",
-            url=twitter_link
-        )
-
-        embed.add_field(
-            name='',
-            value=twitter_entry,
-            inline=True,
-        )
-
-        embed.set_footer(text='' + post_time +
-                         '   🖼️ ' + str(img_count),
-                         icon_url=str(minive_link))
-
-        def format_urls(url_string):
-            url_list = url_string.split(" ")
-            formatted_urls = []
-            for index, url in enumerate(url_list):
-                markdown_url = f"[{index+1}]({url})"
-                formatted_urls.append(markdown_url)
-            formatted_urls_str = ' '.join(formatted_urls)
-            return formatted_urls_str
-
-        formatted_urls_str = format_urls(twitter_all_img)
-        await channel.send(str(formatted_urls_str))
-
-        button_url = twitter_link
-
-        button_view = ButtonView(url=button_url)
-
-        DISCORD_send = await channel.send(embed=embed, view=button_view)
-
-        if DISCORD_send:
-            Twitter_PKL_popup.remove_first_values_from_twitter(1)
-            print('\x1b[38;2;255;255;51m發送到　\x1b[0m' + twitter_channel_id + ' ' +
-                  twitter_id + '　\x1b[91mOK，PKL Cache已經清除\x1b[0m')
-        else:
-            print('Discord 消息發送失敗')
-            logging.error('Discord 消息發送失敗')
-
+                embed = discord.Embed(title="", color=discord.Color.purple())
+                embed.set_author(
+                    name=twitter_author +' '+
+                    '@(' + str(twitter_id) + ') ',
+                    icon_url=minive_link,
+                    url=twitter_link
+                )
+                embed.add_field(
+                    name='',
+                    value=twitter_entry,
+                    inline=True,
+                )
+                embed.set_footer(text='' + post_time +
+                                '   🖼️ ' + str(img_count),
+                                icon_url=str('https://i.meee.com.tw/caHwoj6.png'))
+                button_url = twitter_link
+                button_view = ButtonView(url=button_url)
+                
+                formatted_urls_str = format_urls(twitter_all_img)
+                await send_discord_message(channel, ive_members, embed, button_view, twitter_id, formatted_urls_str, time_offset)
+                
+                
     client.run(TOKEN)
-
+        
 
 if __name__ == "__main__":
     discord_twitter()
