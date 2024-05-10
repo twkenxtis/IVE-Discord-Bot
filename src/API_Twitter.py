@@ -10,8 +10,8 @@ from twitter.API_match_Twitter_account import (
 )
 from twitter.Twitter_rss_process import *
 
-
-# 是否開啟轉推阻擋功能 Default: True
+#TODO:未來可能寫 TOML 或 Table文件來寫白名單
+# 是否開啟轉推阻擋功能 Default: False
 re_Tweet_switch = True
 
 
@@ -62,11 +62,11 @@ class API_Twitter:
 
         match_output_tuple, re_Tweet_check = self.match_twitter_account()
 
-        if re_Tweet_check == match_output_tuple[1]:
+        if re_Tweet_check == match_output_tuple[1] and re_Tweet_switch == True:
             print('\033[91mWarning: \033[33m\033[38;2;255;255;179m轉推阻擋已開啟，本次請求 \033[91m已阻擋 \033[33m'
-                  '\033[38;2;255;255;179m若要關閉\033[38;2;255;255;179m此功能在\033[0m'
-                  '\033[36m Twitter.py\033[91m \033[38;2;255;255;179m'
-                  '\033[0m將 \033[36mre_Tweet_switch\033[0m 變數設為\033[33m \033[36mFalse\033[0m')
+                '\033[38;2;255;255;179m若要關閉\033[38;2;255;255;179m此功能在\033[0m'
+                '\033[36m API_Twitter.py\033[91m \033[38;2;255;255;179m'
+                '\033[0m將 \033[36mre_Tweet_switch\033[0m 變數設為\033[33m \033[36mFalse\033[0m')
             SystemExit(0)
         elif match_output_tuple is None:
             SystemExit(0)
