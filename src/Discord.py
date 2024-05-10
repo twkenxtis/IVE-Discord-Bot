@@ -320,10 +320,14 @@ def discord_twitter():
             if os.path.exists(file_path_PKL):
                 with open(file_path_PKL, 'rb') as pkl:
                     pkl_data = pickle.load(pkl)
-                    if len(pkl_data) >= 2:
-                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.datetime.now()}\n\033[38;2;102;140;255m{pkl_data}\033[0m")
+                    if len(pkl_data) >= 2 and pkl_data[1] is not None:
+                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
                         PKL_READ = True
                         await send_embed(PKL_READ)
+                    elif len(pkl_data) >= 2 and pkl_data[1] is None:
+                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
+                        Twitter_PKL_popup.remove_first_values_from_twitter(2)
+                        logging.info('此貼文沒有符合的#IVE Tag，已清除PKL快取資料...')
 
             await asyncio.sleep(0.5)
 
@@ -357,15 +361,15 @@ def discord_twitter():
                 time_offset = TimeDifferenceCalculator.main(sys_time_from_dict)
                 channel = client.get_channel(channel_id)
 
-                embed = discord.Embed(title="", color=discord.Color.purple())
+                embed = discord.Embed(title=" ", color=discord.Color.purple())
                 embed.set_author(
-                    name=twitter_author +' '+
+                    name=twitter_author +'   '+
                     '@(' + str(twitter_id) + ') ',
                     icon_url=minive_link,
                     url=twitter_link
                 )
                 embed.add_field(
-                    name='',
+                    name='　',
                     value=twitter_entry,
                     inline=True,
                 )
