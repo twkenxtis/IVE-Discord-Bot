@@ -48,16 +48,17 @@ class HTTP3Requester:
             return self.response_content
 
     async def start_requests(self, num_of_requests):
-        # 如果請求數量大於1，則進行異步等待和後續請求
         if num_of_requests > 1:
             print(
-                f"\033[91mRequests: \033[0m\033[38;5;118m{num_of_requests}\033[0m  > 1 \033[38;2;255;212;128mEnable waiting time...\033[0m"
+                f"\033[91m Requests: \033[0m\033[38;5;118m{num_of_requests}\033[0m \033[38;2;255;212;128m > 1 Enable waiting time...\033[0m"
             )
-            for _ in range(num_of_requests - 1):
+            for _ in range(num_of_requests):
                 sleep_time = random.randint(13, 29)
+                await asyncio.sleep(sleep_time)
+                await self.make_request()
                 print(
                     f"\033[90m{SystemTime.format_current_time()}\033[0m "
                     f"\033[91m Waiting \033[0m \033[38;5;208m{sleep_time}s\033[0m \033[38;2;255;212;128m for request...\033[0m"
                 )
-                await asyncio.sleep(sleep_time)
-                await self.make_request()
+        else:
+            await self.make_request()
