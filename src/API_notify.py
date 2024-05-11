@@ -8,16 +8,25 @@ from setting import check_chrome_notify_log
 class ChromeNotifyLogHandler:
     def __init__(self):
         self.project_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-        self.history_path = os.path.join(self.project_dir, 'assets', 'notify_history.txt')
+        self.history_path = os.path.join(
+            self.project_dir, "assets", "notify_history.txt"
+        )
         self.setup_logging()
         self.chrome_003_log, self.history_file = self.initialize_files()
 
     def setup_logging(self):
+        current_dir = os.getcwd()
         logging.basicConfig(
             level=logging.INFO,
-            handlers=[ColoredLogHandler(
-                fmt=logging.BASIC_FORMAT, file_path='./logs\\log.txt', debug_file_path='./logs\\DEBUG_log.txt')],
+            handlers=[
+                ColoredLogHandler(
+                    fmt=logging.BASIC_FORMAT,
+                    file_path = os.path.join(current_dir, './logs' 'log.txt'),
+                    debug_file_path = os.path.join(current_dir, './logs' 'DEBUG_log.txt'),
+                )
+            ],
         )
+        
 
     def initialize_files(self):
         try:
@@ -46,38 +55,40 @@ class ChromeNotifyLogHandler:
     def get_new_data(self):
         with open(self.chrome_003_log, "r", encoding="utf-8", errors="ignore") as old:
             old_data = old.readlines()
-
         with open(self.history_file, "r", encoding="utf-8", errors="ignore") as temp:
             temp_data = temp.readlines()
-
         if len(old_data) < len(temp_data):
             logging.warning("檢測到文件異常，已經重新同步 notify_history.txt")
             logging.warning("路徑：%s", self.history_path)
-            with open(self.history_file, "w", encoding="utf-8", errors="ignore") as temp:
+            with open(
+                self.history_file, "w", encoding="utf-8", errors="ignore"
+            ) as temp:
                 temp.writelines(old_data)
             return old_data  # 返回重新同步後的數據
-
         if len(old_data) > len(temp_data):
-            new_data = old_data[len(temp_data):]
-            with open(self.history_file, "a", encoding="utf-8", errors="ignore") as temp:
+            new_data = old_data[len(temp_data) :]
+            with open(
+                self.history_file, "a", encoding="utf-8", errors="ignore"
+            ) as temp:
                 temp.writelines(new_data)
             return new_data
-
         return None
-
 
     def main(self):
         try:
             print("\033[34mNotification of Continuous checking... \033[0m")
             while True:
-                if self.check_file_changes():
-                    _new_data = self.get_new_data()
-                    if _new_data is not None:
-                        format_end_data = "".join(_new_data[1:])
-                        print('─' * 50)
-                        print('New data: %s' % format_end_data, '\n 之後這個列印可以用來寫入文本或在記憶體直接處理掉')
-                        print('─' * 50)
-                        print(str(format_end_data))
+                if self.check_file_changes() is True and self.get_new_data() is not None:
+                    format_end_data = "".join(self.get_new_data()[1:])
+                    
+                    print("─" * 50)
+                    print(
+                        "New data: %s" % format_end_data,
+                        "\n 之後這個列印可以用來寫入文本或在記憶體直接處理掉",
+                    )
+                    print("─" * 50)
+                    print(str(format_end_data))
+                        
                 time.sleep(0.5)
         except NameError:
             SystemExit(1)
