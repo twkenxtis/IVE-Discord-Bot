@@ -2,6 +2,7 @@ import hashlib
 import logging
 import os
 import pickle
+import subprocess
 
 from custom_log import ColoredLogHandler
 from twitter.API_match_Twitter_account import (
@@ -12,7 +13,7 @@ from twitter.Twitter_rss_process import *
 
 #TODO:未來可能寫 TOML 或 Table文件來寫白名單
 # 是否開啟轉推阻擋功能 Default: False
-re_Tweet_switch = True
+re_Tweet_switch = False
 
 
 class API_Twitter:
@@ -20,6 +21,7 @@ class API_Twitter:
     def __init__(self):
         self.Twitter_cache_list = []
         self.Twitter_cache_dict_pkl = "../assets/Twitter_cache_dict.pkl"
+        self.Twitter_dict_json= "../assets/Twitter_dict.json"
 
     @staticmethod
     def match_twitter_account():
@@ -90,12 +92,18 @@ class API_Twitter:
             # list(Twitter_cache_list)  ['qcpk0203','c682e42712551f88dfcefe076e2aeb93']
             self.Twitter_cache_list.append(Twitter_id)
             self.Twitter_cache_list.append(MD5)
+            
+            is_in_Dict = Key_Exists_in_Dict().dict_key_found(MD5)
+            
+            if int(is_in_Dict) == 1:
+                logging.info('此通知已經存在資料庫中，不再新增')
+            elif int(is_in_Dict) == 0:
+                self._save_to_pkl_() # 以List存入['Twitter_id, MD5']
 
-            self._save_to_pkl_()
-
-            Twitter.start_request(Twitter_id)  # 呼叫HTTP RSS請求和存入字典的操作
-            TwitterMatcher().start_match() # 查找HashTag標籤並匹配IVE成員是誰或不只匹配到一人
-
+                Twitter.start_request(Twitter_id)  # 呼叫HTTP RSS請求和存入字典的操作
+                TwitterMatcher().start_match() # 查找HashTag標籤並匹配IVE成員是誰或不只匹配到一人
+            
+    # 私有方法
     def _save_to_pkl_(self):
         # 開始存入 value 到 ../assets/Twitter_cache_dict.pkl
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -151,5 +159,32 @@ class TwitterEntry_re_Tweet:
         return match_accounts
 
 
+class Key_Exists_in_Dict:
+    def read_twitter_dict(self):
+        
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+        file_path = "../assets/Twitter_dict.json"
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as f:
+                twitter_dict = json.load(f)
+                return twitter_dict
+        else:
+            with open(file_path, 'w') as f:
+                json.dump({}, f)
+            with open(file_path, 'r') as f:
+                twitter_dict = json.load(f)
+                logging.warning(" 檢測到Twitter_ditct.json異常，已初始化 /assets/Twitter_dict.json ，結果可能不準確!")
+                return twitter_dict
+
+    def dict_key_found(self, MD5):
+        twitter_dict = self.read_twitter_dict()
+        
+        if MD5 and twitter_dict is not None:
+            if MD5 in twitter_dict:
+                return int(1) # FOUND
+            else:
+                return int(0) # NOT FOUND
+        
+        
 if __name__ == '__main__':
     API_Twitter().process_twitter_account()
