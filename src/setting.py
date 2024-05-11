@@ -1,24 +1,21 @@
+import json
 import logging
 import os
 import sys
-import json
 
-from custom_log import ColoredLogHandler
+from src.custom_log import ColoredLogHandler
 
 
 logging.basicConfig(
     level=logging.INFO,
-    handlers=[ColoredLogHandler(
-        fmt=logging.BASIC_FORMAT, file_path='./logs\\log.txt', debug_file_path='./logs\\DEBUG_log.txt')],
+    handlers=[ColoredLogHandler()],
 )
-
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-setting_file = os.path.join('../config/setting.json')
 
 
 def check_chrome_notify_log():
 
-    global setting_file
+    current_dir = os.getcwd()
+    setting_file = os.path.join(current_dir, 'config', 'setting.json')
 
     with open(str(setting_file), 'r') as json_file:
         setting_chrome_notify = json.load(json_file)
@@ -30,14 +27,13 @@ def check_chrome_notify_log():
     if platform in chrome_notify:
         path = chrome_notify[platform]
         if os.path.exists(path):
+            print('Successfully - Chrome notifications log file found.')
+            
             logging.info(f"File found: {path}")
-            print(
-                '\033[38;2;255;255;153mSuccessfully\033[m - \033[38;2;204;245;255mChrome notifications log file found!\033[m')
-            print(
-                '\033[38;2;153;235;255mNotification of Continuous checking...\033[m')
             return True, path
         else:
             (logging.error(f"File not found: {path}"))
+            print("\033[38;2;255;255;153mPlease check the path of 'Chrome notifications log file' in /config/setting.json. \033[0m")
             SystemExit(1)
     else:
         logging.warning("Unknown operating system")
