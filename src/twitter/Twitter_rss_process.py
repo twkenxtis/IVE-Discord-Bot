@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import logging
@@ -17,7 +18,7 @@ class Twitter:
     def start_request(twitter_account_name: str):
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         twitter_rss_dict = Twitter_Dict_Manager()
-        #TODO:Warring: DEV URL
+        #rss_request = f'http://127.0.0.1:1200/twitter/media/{twitter_account_name}?limit=1'
         rss_request = f'http://127.0.0.1:8153/{twitter_account_name}.xml'
         feed = Twitter.get_feed(rss_request)
         Twitter.process_feed(feed, twitter_rss_dict)
@@ -25,7 +26,7 @@ class Twitter:
     @staticmethod
     def get_feed(rss_request):
         each_request = http_request.HTTP3Requester(str(rss_request))
-        each_request.start_requests(1)  # Default request 1 time.
+        asyncio.run(each_request.start_requests(1)) # How many requests to send at once
         if each_request.get_response_content() is None:
             Twitter_PKL_popup.remove_first_values_from_twitter(1)
             print('\033[91m異常處理中.... PKL Cache 已經清除\033[0m')
@@ -69,7 +70,7 @@ class Twitter:
         # 定義圖片和影片的正則表達式模式
         PATTERN_1 = 'https://pbs.twimg.com/'
         PATTERN_2 = 'https://pbs.twimg.com/media/'
-        PATTERN_3 = 'https://video.twimg.com/tweet_video/'
+        PATTERN_3 = 'https://video.twimg.com/'
         img_pattern = re.compile(
             rf'{PATTERN_1}[^"\']+?\.(?:jpg)|{PATTERN_2}[^"\']+?\?format=jpg|{PATTERN_3}[^"\']+?\.(?:mp4)'
         )
