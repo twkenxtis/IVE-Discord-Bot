@@ -22,10 +22,10 @@ class API_Twitter:
         current_dir = os.getcwd()
         self.Twitter_cache_list = []
         self.Twitter_cache_dict_pkl = os.path.join(
-            current_dir, "../assets/Twitter_cache_dict.pkl"
+            current_dir, '..', 'assets', 'Twitter_cache_dict.pkl'
         )
         self.Twitter_dict_json = os.path.join(
-            current_dir, "../assets/Twitter_dict.json"
+            current_dir, '..', 'assets', 'Twitter_dict.json'
         )
 
         logging.basicConfig(
@@ -33,9 +33,9 @@ class API_Twitter:
             handlers=[
                 ColoredLogHandler(
                     fmt=logging.BASIC_FORMAT,
-                    file_path=os.path.join(current_dir, "./logs\\twitter\\log.txt"),
+                    file_path=os.path.join(current_dir, './', 'logs', 'twitter', 'log.txt'),
                     debug_file_path=os.path.join(
-                        current_dir, "./logs\\twitter\\DEBUG_log.txt"
+                        current_dir, './', 'logs', 'twitter', 'DEBUG_log.txt'
                     ),
                 )
             ],
@@ -185,7 +185,7 @@ class Key_Exists_in_Dict:
     def read_twitter_dict(self):
 
         current_dir = os.getcwd()
-        file_path = os.path.join(current_dir, "../assets/Twitter_dict.json")
+        file_path = os.path.join(current_dir, '..', 'assets',  'Twitter_dict.json')
         if os.path.isfile(file_path):
             with open(file_path, "r") as f:
                 twitter_dict = json.load(f)
