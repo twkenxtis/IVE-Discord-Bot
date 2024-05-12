@@ -3,12 +3,12 @@ import logging
 import os
 import pickle
 
-from custom_log import ColoredLogHandler
-from twitter.API_match_Twitter_account import (
+from src.custom_log import ColoredLogHandler
+from src.twitter.API_match_Twitter_account import (
     TwitterAccountProcessor,
     Error_Log_Handler,
 )
-from twitter.Twitter_rss_process import *
+from src.twitter.Twitter_rss_process import *
 
 # TODO:未來可能寫 TOML 或 Table文件來寫白名單
 
@@ -33,8 +33,8 @@ class API_Twitter:
             handlers=[
                 ColoredLogHandler(
                     fmt=logging.BASIC_FORMAT,
-                    file_path=os.path.join(current_dir, './', 'logs', 'twitter', 'log.txt'),
-                    debug_file_path=os.path.join(
+                    file_path = os.path.join(current_dir, './', 'logs', 'twitter', 'log.txt'),
+                    debug_file_path = os.path.join(
                         current_dir, './', 'logs', 'twitter', 'DEBUG_log.txt'
                     ),
                 )
@@ -109,11 +109,11 @@ class API_Twitter:
         is_in_Dict = Key_Exists_in_Dict().dict_key_found(MD5)
 
         if int(is_in_Dict) == 1:
-            logging.info("此通知已經存在資料庫中，不再新增")
+            logging.info("此次通知已經存在資料庫中，不再發起後續請求")
         elif int(is_in_Dict) == 0:
             self.__save_to_pkl_()  # 以List存入['Twitter_id, MD5']
 
-            Twitter.start_request(Twitter_id)  # 呼叫HTTP RSS請求和存入字典的操作
+            Twitter().start_request(Twitter_id)  # 呼叫HTTP RSS請求和存入字典的操作
             TwitterMatcher().start_match()  # 查找HashTag標籤並匹配IVE成員是誰或不只匹配到一人
             
     # 私有方法
