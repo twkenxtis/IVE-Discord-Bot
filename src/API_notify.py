@@ -1,8 +1,8 @@
 import logging
 import os
 import time
-from custom_log import ColoredLogHandler
-from setting import check_chrome_notify_log
+from src.custom_log import ColoredLogHandler
+from src.setting import check_chrome_notify_log
 
 
 class ChromeNotifyLogHandler:
@@ -21,12 +21,13 @@ class ChromeNotifyLogHandler:
             handlers=[
                 ColoredLogHandler(
                     fmt=logging.BASIC_FORMAT,
-                    file_path = os.path.join(current_dir, './logs' 'log.txt'),
-                    debug_file_path = os.path.join(current_dir, './logs' 'DEBUG_log.txt'),
+                    file_path=os.path.join(current_dir, "src", "logs", "log.txt"),
+                    debug_file_path=os.path.join(
+                        current_dir, "src", "logs", "DEBUG_log.txt"
+                    ),
                 )
             ],
         )
-        
 
     def initialize_files(self):
         try:
@@ -76,23 +77,18 @@ class ChromeNotifyLogHandler:
 
     def main(self):
         try:
-            print("\033[34mNotification of Continuous checking... \033[0m")
+            print("\033[96mNotification of Continuous checking...\033[0m")
             while True:
-                if self.check_file_changes() is True and self.get_new_data() is not None:
-                    format_end_data = "".join(self.get_new_data()[1:])
-                    
-                    print("─" * 50)
-                    print(
-                        "New data: %s" % format_end_data,
-                        "\n 之後這個列印可以用來寫入文本或在記憶體直接處理掉",
-                    )
-                    print("─" * 50)
-                    print(str(format_end_data))
-                        
+                if self.check_file_changes():
+                    _new_data = self.get_new_data()
+                    if _new_data is not None:
+                        format_end_data = "".join(_new_data[1:])
+                        print("─" * 50)
+                        print("New data:\n")
+                        print (str(format_end_data))
+                        print("\n之後這個列印可以用來寫入文本或在記憶體直接處理掉")
+                        print("─" * 50)
                 time.sleep(0.5)
         except NameError:
             SystemExit(1)
 
-
-if __name__ == "__main__":
-    ChromeNotifyLogHandler().main()
