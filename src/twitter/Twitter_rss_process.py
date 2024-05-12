@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 import feedparser
-import http_request
+import src.http_request
 
 
 class Twitter:
