@@ -27,9 +27,6 @@ def check_chrome_notify_log():
     if platform in chrome_notify:
         path = chrome_notify[platform]
         if os.path.exists(path):
-            print('Successfully - Chrome notifications log file found.')
-            
-            logging.info(f"File found: {path}")
             return True, path
         else:
             (logging.error(f"File not found: {path}"))
