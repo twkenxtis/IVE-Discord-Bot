@@ -1,11 +1,15 @@
 import asyncio
-import datetime
 import json
 import logging
 import os
 import pickle
 import urllib.parse
+from datetime import datetime
 
+################################################
+# discord python power by Rapptz MIT License
+# https://github.com/Rapptz/discord.py
+################################################
 import discord
 from discord.ext import commands
 from discord import Embed
@@ -78,9 +82,9 @@ class TimeDifferenceCalculator:
     @staticmethod
     def calculate_time_difference(target_time_str):
         # 將目標時間字符串轉換為 datetime 對象
-        target_time = datetime.datetime.strptime(target_time_str, "%Y/%m/%d %H:%M:%S")
+        target_time = datetime.strptime(target_time_str, "%Y/%m/%d %H:%M:%S")
         # 獲取當前時間
-        current_time = datetime.datetime.now()
+        current_time = datetime.now()
         # 計算時間差
         time_difference = current_time - target_time
         # 將時間差轉換為秒
@@ -262,7 +266,7 @@ class ButtonView(discord.ui.View):
         super().__init__(timeout=timeout)
 
         url_button = discord.ui.Button(
-            label="Link",
+            label="View on X",
             style=discord.ButtonStyle.link,
             url=url
         )
@@ -300,7 +304,7 @@ def discord_twitter():
     global TOKEN
     
     async def send_discord_message(channel, ive_members, embed, button_view, twitter_id, formatted_urls_str, time_offset):
-        if time_offset < 10:
+        if time_offset < 1.5:
             dc_message = await channel.send(str(formatted_urls_str))
             dc_embed = await channel.send(embed=embed, view=button_view)
             if dc_message and dc_embed:
@@ -321,11 +325,11 @@ def discord_twitter():
                 with open(file_path_PKL, 'rb') as pkl:
                     pkl_data = pickle.load(pkl)
                     if len(pkl_data) >= 2 and pkl_data[1] is not None:
-                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
+                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
                         PKL_READ = True
                         await send_embed(PKL_READ)
                     elif len(pkl_data) >= 2 and pkl_data[1] is None:
-                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
+                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
                         Twitter_PKL_popup.remove_first_values_from_twitter(2)
                         logging.info('此貼文沒有符合的#IVE Tag，已清除PKL快取資料...')
 
@@ -357,25 +361,27 @@ def discord_twitter():
                 sys_time_from_dict = value[4]  # 2024/05/10 20:08:07 (存入資料時系統時間)
                 img_count = value[5] # int 照片數量
                 twitter_all_img = value[6] # 所有的照片網址
+                author_avatar = value[7] # # 貼文作者的頭像網址
                 
                 time_offset = TimeDifferenceCalculator.main(sys_time_from_dict)
                 channel = client.get_channel(channel_id)
 
-                embed = discord.Embed(title=" ", color=discord.Color.purple())
+                embed = discord.Embed(title = twitter_author, url=twitter_link, color=0xed68a6)
                 embed.set_author(
-                    name=twitter_author +'   '+
-                    '@(' + str(twitter_id) + ') ',
+                    name='New post from  ' + '@(' + str(twitter_id) + ')',
                     icon_url=minive_link,
-                    url=twitter_link
+                    #url=twitter_link
                 )
                 embed.add_field(
                     name='　',
                     value=twitter_entry,
                     inline=True,
                 )
-                embed.set_footer(text='' + post_time +
-                                '   🖼️ ' + str(img_count),
-                                icon_url=str('https://i.meee.com.tw/caHwoj6.png'))
+                embed.set_thumbnail(url=author_avatar)
+                post_time_obj = datetime.strptime(post_time, '%Y/%m/%d %H:%M:%S')
+                embed.set_footer(text='MIT License © 2024 omenbibi　' + '　 🖼️ ' + str(img_count),
+                                icon_url='https://i.meee.com.tw/caHwoj6.png')
+                embed.timestamp = post_time_obj
                 button_url = twitter_link
                 button_view = ButtonView(url=button_url)
                 
