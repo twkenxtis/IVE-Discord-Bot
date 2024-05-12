@@ -1,11 +1,14 @@
 import logging
 import os
 import time
+
+from src.API_Twitter import *
 from src.custom_log import ColoredLogHandler
 from src.setting import check_chrome_notify_log
 
 
 class ChromeNotifyLogHandler:
+    
     def __init__(self):
         self.project_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
         self.history_path = os.path.join(
@@ -78,11 +81,8 @@ class ChromeNotifyLogHandler:
                     _new_data = self.get_new_data()
                     if _new_data is not None:
                         format_end_data = "".join(_new_data[1:])
-                        print("─" * 50)
                         print("New data:\n")
                         print (str(format_end_data))
-                        print("\n之後這個列印可以用來寫入文本或在記憶體直接處理掉")
-                        print("─" * 50)
                 time.sleep(0.5)
         except NameError:
             SystemExit(1)
