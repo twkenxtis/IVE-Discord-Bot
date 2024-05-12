@@ -15,16 +15,11 @@ class ChromeNotifyLogHandler:
         self.chrome_003_log, self.history_file = self.initialize_files()
 
     def setup_logging(self):
-        current_dir = os.getcwd()
         logging.basicConfig(
             level=logging.INFO,
             handlers=[
                 ColoredLogHandler(
                     fmt=logging.BASIC_FORMAT,
-                    file_path=os.path.join(current_dir, "src", "logs", "log.txt"),
-                    debug_file_path=os.path.join(
-                        current_dir, "src", "logs", "DEBUG_log.txt"
-                    ),
                 )
             ],
         )
