@@ -3,12 +3,9 @@ import logging
 import os
 import sys
 
-from src.custom_log import ColoredLogHandler
-
 
 logging.basicConfig(
     level=logging.INFO,
-    handlers=[ColoredLogHandler()],
 )
 
 
