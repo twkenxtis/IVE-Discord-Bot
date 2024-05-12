@@ -379,7 +379,7 @@ def discord_twitter():
                 )
                 embed.set_thumbnail(url=author_avatar)
                 post_time_obj = datetime.strptime(post_time, '%Y/%m/%d %H:%M:%S')
-                embed.set_footer(text='MIT License © 2024 omenbibi　' + '　 🖼️ ' + str(img_count),
+                embed.set_footer(text='MIT © 2024 omenbibi   ' + '🖼️ ' + str(img_count),
                                 icon_url='https://i.meee.com.tw/caHwoj6.png')
                 embed.timestamp = post_time_obj
                 button_url = twitter_link
