@@ -6,7 +6,7 @@ import re
 import subprocess
 import time
 
-from custom_log import ColoredLogHandler
+from src.custom_log import ColoredLogHandler
 
 
 class TwitterAccountProcessor:
@@ -17,9 +17,9 @@ class TwitterAccountProcessor:
         handlers=[
             ColoredLogHandler(
                 fmt=logging.BASIC_FORMAT,
-                file_path=os.path.join(current_dir, '.', 'logs', 'twitter', 'log.txt'),
+                file_path=os.path.join(current_dir, 'src', 'logs', 'twitter', 'log.txt'),
                 debug_file_path=os.path.join(
-                    current_dir, '.', 'logs', 'twitter', 'DEBUG_log.txt'
+                    current_dir, 'src', 'logs', 'twitter', 'DEBUG_log.txt'
                 ),
             )
         ],
