@@ -6,8 +6,8 @@ from datetime import datetime
 import httpx
 from fake_useragent import UserAgent
 
-from timezone import SystemTime
-from custom_log import ColoredLogHandler
+from src.timezone import SystemTime
+from src.custom_log import ColoredLogHandler
 
 
 class HTTP3Requester:
