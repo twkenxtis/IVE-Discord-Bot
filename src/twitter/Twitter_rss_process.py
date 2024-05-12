@@ -36,7 +36,7 @@ class Twitter:
             self.process_feed(self.parsed_rssfeed)
 
     def get_feed(self, rss_request: str) -> str:
-        each_request = http_request.HTTP3Requester(str(rss_request))
+        each_request = src.http_request.HTTP3Requester(str(rss_request))
         asyncio.run(each_request.start_requests(1))  # How many requests to send at once
         if each_request.get_response_content() is None:
             Twitter_PKL_popup.remove_first_values_from_twitter(1)
