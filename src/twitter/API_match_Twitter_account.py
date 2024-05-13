@@ -7,22 +7,16 @@ import re
 import subprocess
 import time
 
-from src.custom_log import ColoredLogHandler
+from custom_log import ColoredLogHandler
 
 
 class TwitterAccountProcessor:
 
-    current_dir = os.getcwd()
     logging.basicConfig(
         level=logging.INFO,
         handlers=[
             ColoredLogHandler(
-                fmt=logging.BASIC_FORMAT,
-                file_path = os.path.join(current_dir, 'src', 'logs', 'twitter', 'log.txt'),
-                debug_file_path = os.path.join(
-                    current_dir, 'src', 'logs', 'twitter', 'DEBUG_log.txt'
-                ),
-            )
+                fmt=logging.BASIC_FORMAT)
         ],
     )
 
@@ -70,7 +64,8 @@ class TwitterAccountProcessor:
             binary_return_value = None
             value_in_list = None
         if binary_return_value is not None or value_in_list is not None:
-            self.binary_twitter_account_list(binary_return_value, value_in_list)
+            self.binary_twitter_account_list(
+                binary_return_value, value_in_list)
         else:
             # 在實例外部判斷是否有找到值
             pass
@@ -114,7 +109,8 @@ class Error_Log_Handler:
     def error_log():
         current_time = datetime.datetime.now()
         print(current_time)
-        logging.info("Twitter Account match failed.，Can't find Twitter username in target.")
+        logging.info(
+            "Twitter Account match failed.，Can't find Twitter username in target.")
         return
 
     def tag_error():
@@ -137,15 +133,16 @@ class Twitter_account_list:
 
     def check_rss_list_json_file(self):
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        RESTORE_LIST_path = os.path.join('src', 'restore', 'restore_rss_list.py')
-        RESTORE_PKL_path = os.path.join('src','restore', 'restore_rss_pkl.py')
-        json_file_path = os.path.join(script_dir, '../..', 'config', 'rss_list.json')
+        RESTORE_LIST_path = os.path.join('restore', 'restore_rss_list.py')
+        RESTORE_PKL_path = os.path.join('restore', 'restore_rss_pkl.py')
+        json_file_path = os.path.join(
+            script_dir, '../..', 'config', 'rss_list.json')
         savebin_file_path = os.path.join(
             script_dir, '../..', 'assets', 'temp', 'json_file_size.bin'
         )
-        pickle_file_path = os.path.join(script_dir, '../..', 'assets', 'rss_list.pkl')
+        pickle_file_path = os.path.join(
+            script_dir, '../..', 'assets', 'rss_list.pkl')
         error_printer_path = json_file_path[-21:]
-
 
         # 檢查是否存在 rss_list.json 文件
         if os.path.isfile(json_file_path) is False:
@@ -201,8 +198,8 @@ class Twitter_account_list:
         # 讀取二進製檔案 savebin_file_path 的內容，並將其轉換為整數 previous_file_size
         with open(savebin_file_path, "rb") as f:
             previous_file_size = int.from_bytes(f.read(), "big")
-        # 將 current_file_size 轉換為二進製數據，並寫入到 savebin_file_path 檔案中
 
+        # 將 current_file_size 轉換為二進製數據，並寫入到 savebin_file_path 檔案中
         with open(savebin_file_path, "wb") as f:
             f.write(current_file_size.to_bytes(4, "big"))
 
@@ -228,7 +225,8 @@ class Twitter_account_list:
                     self.pickle_file_path = pickle_file_path
 
         # main code for binary search data
-        path_to_pk1 = os.path.join(script_dir, '..', '..', 'assets', 'rss_list.pkl')
+        path_to_pk1 = os.path.join(
+            script_dir, '..', '..', 'assets', 'rss_list.pkl')
         with open(path_to_pk1, "rb") as _pickle:
             self.pickle_file_path = pickle.load(_pickle)
             self.pickle_file_path = sorted(self.pickle_file_path)
