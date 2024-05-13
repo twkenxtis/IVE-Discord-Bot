@@ -203,11 +203,16 @@ class Key_Exists_in_Dict:
 
     def read_twitter_dict(self):
 
-        current_dir = os.getcwd()
-        file_path = os.path.join(current_dir, "../assets/Twitter_dict.json")
+        # 獲取當前檔案所在的目錄路徑
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+
+        file_path = os.path.join(
+            current_dir,  "..", "assets", "Twitter_dict.json")
+
+        file_path = os.path.abspath(file_path)
 
         print("\n\033[9;33;40m路徑追蹤\033[0m" +
-              'class Key_Exists_in_Dict ', file_path, '-' * 50)
+              'class Key_Exists_in_Dict ', file_path)
 
         if os.path.isfile(file_path):
             with open(file_path, "r") as f:
