@@ -184,7 +184,10 @@ class Key_Exists_in_Dict:
     def read_twitter_dict(self):
 
         current_dir = os.getcwd()
-        file_path = os.path.join(current_dir, 'assets',  'Twitter_dict.json')
+        file_path = os.path.join(current_dir, '', 'assets',  'Twitter_dict.json')
+        
+        print('Debug from API_Twitter: 189Line file path check', file_path)
+        
         if os.path.isfile(file_path):
             with open(file_path, "r") as f:
                 twitter_dict = json.load(f)
