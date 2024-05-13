@@ -2,33 +2,38 @@
 
 A fully custom Discord Bot for IVE
 
-
-
-**🚧 Development... 92% Now**
-
-
-
-- If want update ive_hashtag.json File using <update_ive_hashtag.py>
-
-> Please make sure your are following json format edit and **DO NOT CHANGE JSON FILE NAME** Please!
+Support **Python 3.8 - 3.12**
 
 # How to setup :
-- Abount config/.env
-  open .env then wrote your Discord *TOKEN* .env file For example:
+```
+git repo clone twkenxtis/IVE-Discord-Bot \
+cd IVE-Discord-Bot \
+pip install -r requirements.txt
+```
+
+setting up Discord TOKEN
+```
+cd config \
+vim .env
+```
+- If want update ive_hashtag.json File using `update_ive_hashtag.py`
+
+> Please make sure your are following json format edit and **DO NOT CHANGE JSON FILE NAME** Please!
   
-  ```TOKEN=3141592653589793238462643383279502884197169399375105820974944```
-  This is your Discord bot setting
-  
-- About config/settings.json
-## windows
+Next setup config/settings.json path to chrome notify history path
+```
+cd /config \
+vim setting.json
+```
+### windows
 
 `C:\Users\<username>\AppData\Local\Google\Chrome\User Data\Default\Platform Notifications\000003.log`
 
-> Can't find the file? try typing `windows+R`➡️`%appdate%`➡️`Follow the path`➡️then find out the 000003.log is a binary file.
+> Can't find the file? try typing `windows+R` ➡️ `%appdate%` ➡️ `Follow the path` ➡️ then find out the 000003.log is a binary file.
 > 
 > back to config folder and open `settings.json` change the <username> and your done.
 
-## windows WSL
+### windows WSL
 
 > Change <username> to your computer username on WSL.
 > 
@@ -49,7 +54,7 @@ Please change your **<$HOME>** to your **home path name** in `settings.json` you
 
 back to config folder and open `settings.json` change the <username> and your done.
 
-## Other environment
+### Other environment
 
 For example your using docker like [docker-webtop](https://docs.linuxserver.io/images/docker-webtop/)
 
@@ -63,22 +68,26 @@ Ensure that your Docker container is up and running, then examine the Docker log
 
 If all checks out well, you have successfully completed the setup.
 
-
-
+# Start the bot!
+```
+cd /src \
+python3 Discord.py \
+cd .. \
+python3 main.py
+```
 
 # How it works?
-- trigger your local chrome notifications and send GET request for [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic process send to Discord channel
-### What is RSSHUB?
+trigger your local chrome notifications and send GET request for [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic process send to Discord channel
+- What is RSSHUB?
 > **I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)**
 
-
-Setp1 : Make sure your chrome allow send notify and turn on this setting on google-chrome  ``System/Continue running backgroud apss when Google chrome is close``
-
-Setp2 : Make sure Allow Twitter and instagram **Web Push API** ， Because sometimes,privacy-focused browser extensions may block it.
-
-Setp3 : goto ```/config/setting/``` and ```/config/.env``` wrote your Discord Token and chrome notify locate.
-
-Setp4 : Using ```python3 API_notify.py``` shoud be start working
+  Setp1 : Make sure your chrome allow send notify and turn on this setting on google-chrome  ``System/Continue running backgroud apss when Google chrome is close``
+  
+  Setp2 : Make sure Allow Twitter and instagram **Web Push API** ， Because sometimes,privacy-focused browser extensions may block it.
+  
+  Setp3 : goto ```/config/setting/``` and ```/config/.env``` wrote your Discord Token and chrome notify locate.
+  
+  Setp4 : Using ```python3 API_notify.py``` shoud be start working
 
 ## In the END, I don't have Mac so I'm not sure is working on Mac....
 
