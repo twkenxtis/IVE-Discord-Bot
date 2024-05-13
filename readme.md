@@ -95,7 +95,6 @@ trigger your local chrome notifications and send GET request for [**RSSHUB**](ht
   
   Setp3 : goto ```/config/setting/``` and ```/config/.env``` wrote your Discord Token and chrome notify locate.
   
-  Setp4 : Using ```python3 API_notify.py``` shoud be start working
 
 ## In the END, I don't have Mac so I'm not sure is working on Mac....
 
