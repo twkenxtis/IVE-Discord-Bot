@@ -37,11 +37,16 @@ vim setting.json
 
 > Change <username> to your computer username on WSL.
 > 
-> `cat '/mnt/c/Users/<username>/AppData/Local/Google/Chrome/User Data/Default/Platform Notifications/000003.log'`
+> ```
+> cat '/mnt/c/Users/<username>/AppData/Local/Google/Chrome/User Data/Default/Platform Notifications/000003.log'
+> ```
 > 
 > If see your notify history then congratulations! Your are find the file.
 > 
-> `vim settings.json` then chose UNIX path and write your patch
+> ```
+> vim settings.json
+> ```
+> then chose UNIX path and write your patch
 > 
 > back to config folder and open `settings.json` change the <username> and your done.
 
@@ -49,7 +54,10 @@ vim setting.json
 
 Please change your **<$HOME>** to your **home path name** in `settings.json` your chrome or chromium browser install path
 
-> Linux chrome notify history file path is `"home/<username>/.config/google-chrome/Default/Platform Notifications/000003.log"`
+> Linux chrome notify history file path is
+> ```
+> "home/<username>/.config/google-chrome/Default/Platform Notifications/000003.log"
+> ```
 > If you did't find the file, try to find the file by typing `locate 000003.log` in terminal. or using fzf
 
 back to config folder and open `settings.json` change the <username> and your done.
