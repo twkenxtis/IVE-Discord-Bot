@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import os
@@ -17,10 +18,6 @@ class TwitterAccountProcessor:
         handlers=[
             ColoredLogHandler(
                 fmt=logging.BASIC_FORMAT,
-                file_path=os.path.join(current_dir, 'src', 'logs', 'twitter', 'log.txt'),
-                debug_file_path=os.path.join(
-                    current_dir, 'src', 'logs', 'twitter', 'DEBUG_log.txt'
-                ),
             )
         ],
     )
@@ -37,50 +34,42 @@ class TwitterAccountProcessor:
 
     def process_twitter_account(self):
 
-        # 檢查檔案是否存在
-        if os.path.isfile(self.twitter_account):
-            with open(
-                self.twitter_account, "r", encoding="utf-8"
-            ) as twitter_account_data:
-                input_data_file = twitter_account_data.read()
+        input_data_file = self.twitter_account
 
-            # 處理 Twitter 帳戶信息
-            input_data_file, twitter_username, twitter_post_id = (
-                self.process_twitter_account_info(
-                    input_data_file,
-                    self.twitter_account,
-                    self.twitter_username,
-                    self.twitter_post_id,
-                )
+        # 處理 Twitter 帳戶信息
+        input_data_file, twitter_username, twitter_post_id = (
+            self.process_twitter_account_info(
+                input_data_file,
+                self.twitter_account,
+                self.twitter_username,
+                self.twitter_post_id,
             )
-            if twitter_username is not None and twitter_post_id is not None:
-                search_value = twitter_username.group(1)
-                binary_return_value, value_in_list = self.binary_twitter_account_list(
-                    search_value
-                )
-            if twitter_username is not None and twitter_post_id != "":
+        )
+        if twitter_username is not None and twitter_post_id is not None:
+            search_value = twitter_username.group(1)
+            binary_return_value, value_in_list = self.binary_twitter_account_list(
+                search_value
+            )
+        if twitter_username is not None and twitter_post_id != "":
 
-                # EX : https://twitter.com/elonmusk/status/314159265358979324
-                twitter_post_link = f"https://twitter.com/{twitter_username.group(1)}/status/{twitter_post_id.group(1)}"
+            # EX : https://twitter.com/elonmusk/status/314159265358979324
+            twitter_post_link = f"https://twitter.com/{twitter_username.group(1)}/status/{twitter_post_id.group(1)}"
 
-                # 這是匹配 Twitter 帳戶元組輸出（元組）
-                return (
-                    bool(binary_return_value),
-                    str(value_in_list),
-                    str(twitter_post_link),
-                    str(twitter_post_id.group(1)),
-                )
-            else:
-                binary_return_value = None
-                value_in_list = None
-            if binary_return_value is not None or value_in_list is not None:
-                self.binary_twitter_account_list(binary_return_value, value_in_list)
-            else:
-                # 在實例外部判斷是否有找到值
-                pass
+            # 這是匹配 Twitter 帳戶元組輸出（元組）
+            return (
+                bool(binary_return_value),
+                str(value_in_list),
+                str(twitter_post_link),
+                str(twitter_post_id.group(1)),
+            )
         else:
-            logging.error(f"File '{self.twitter_account}' not found, System exit now")
-            SystemExit(1)
+            binary_return_value = None
+            value_in_list = None
+        if binary_return_value is not None or value_in_list is not None:
+            self.binary_twitter_account_list(binary_return_value, value_in_list)
+        else:
+            # 在實例外部判斷是否有找到值
+            pass
 
     def binary_twitter_account_list(self, input_search_value):
         match_Twitter_account = input_search_value.strip()
@@ -119,8 +108,11 @@ class Error_Log_Handler:
         pass
 
     def error_log():
-        logging.warning("Twitter Account match failed.")
-        logging.warning("Can't find Twitter username in target.")
+        cyan = '\033[96m'
+        reset_ASCII = '\033[0m'
+        current_time = datetime.datetime.now()
+        print(f"{current_time} ─ {cyan}新通知檢測中，請稍後... {reset_ASCII}")
+        logging.info("Twitter Account match failed.，Can't find Twitter username in target.")
         return
 
     def tag_error():
@@ -143,8 +135,8 @@ class Twitter_account_list:
 
     def check_rss_list_json_file(self):
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        RESTORE_LIST_path = os.path.join('.', 'restore', 'restore_rss_list.py')
-        RESTORE_PKL_path = os.path.join('.','restore', 'restore_rss_pkl.py')
+        RESTORE_LIST_path = os.path.join('src', 'restore', 'restore_rss_list.py')
+        RESTORE_PKL_path = os.path.join('src','restore', 'restore_rss_pkl.py')
         json_file_path = os.path.join(script_dir, '../..', 'config', 'rss_list.json')
         savebin_file_path = os.path.join(
             script_dir, '../..', 'assets', 'temp', 'json_file_size.bin'
