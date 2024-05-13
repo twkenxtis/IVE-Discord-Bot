@@ -258,7 +258,8 @@ class Match_wich_minive():
         if minive_key is not None:
             return str(minive_value)
         else:
-            logging.info("沒有匹配到的帳號")
+            #logging.info("沒有匹配到的帳號")
+            pass
 
 
 class ButtonView(discord.ui.View):
@@ -304,7 +305,7 @@ def discord_twitter():
     global TOKEN
     
     async def send_discord_message(channel, ive_members, embed, button_view, twitter_id, formatted_urls_str, time_offset):
-        if time_offset < 1.5:
+        if time_offset < 1.5 and channel is not None:
             dc_message = await channel.send(str(formatted_urls_str))
             dc_embed = await channel.send(embed=embed, view=button_view)
             if dc_message and dc_embed:
@@ -314,7 +315,7 @@ def discord_twitter():
                 logging.critical('Discord 消息發送失敗')
         else:
             Twitter_PKL_popup.remove_first_values_from_twitter(2)
-            logging.info('DC 無法發送訊息，該訊息已經發過，準備清除PKL快取資料...')
+            logging.info('DC 無法發送訊息，該訊息非IVE貼文或已經發過，準備清除PKL快取資料...')
 
     async def check_file_and_trigger_send_embed():
         PKL_READ = False
