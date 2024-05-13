@@ -258,7 +258,7 @@ class TwitterMatcher:
         with open(self.Twitter_cache_dict_pkl, "rb") as file:
             pkl_data = pickle.load(file)
             
-        json_file_path = os.path.join(os.getcwd(), 'assets', 'Twitter_dict.json')
+        json_file_path = os.path.join(os.getcwd(), '../../assets', 'Twitter_dict.json')
         
         print('DEBUG from Twitter_rss_process checking json file path in line 263: \n', json_file_path)
         
