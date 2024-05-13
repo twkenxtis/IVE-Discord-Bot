@@ -255,10 +255,14 @@ class TwitterMatcher:
 
     def match_ive_members(self):
         # 從pickle文件讀取數據，然後從JSON文件讀取Twitter字典進行匹配
-        #TODO: PKL 兩邊都存不進去 字典可以 路徑要修改可以參考一下字典!
         with open(self.Twitter_cache_dict_pkl, "rb") as file:
             pkl_data = pickle.load(file)
-        with open("../../assets/Twitter_dict.json", "r") as j:
+            
+        json_file_path = os.path.join(os.getcwd(), 'assets', 'Twitter_dict.json')
+        
+        print('DEBUG from Twitter_rss_process checking json file path in line 263: \n', json_file_path)
+        
+        with open(json_file_path, "r") as j:
             twitter_dict = json.load(j)
 
         # 檢查pkl_data是否不為空
