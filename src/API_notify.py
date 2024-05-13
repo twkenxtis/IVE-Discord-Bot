@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import time
@@ -52,6 +53,13 @@ class ChromeNotifyLogHandler:
             time.sleep(1)
 
     def get_new_data(self):
+        
+        current_time = datetime.now()
+        print(current_time)
+        
+        print("\033[38;2;204;255;102mNotification of Continuous checking...\033[0m")
+        
+        
         with open(self.chrome_003_log, "r", encoding="utf-8", errors="ignore") as old:
             old_data = old.readlines()
         with open(self.history_file, "r", encoding="utf-8", errors="ignore") as temp:
@@ -75,15 +83,19 @@ class ChromeNotifyLogHandler:
 
     def main(self):
         try:
-            print("\033[96mNotification of Continuous checking...\033[0m")
             while True:
                 if self.check_file_changes():
                     _new_data = self.get_new_data()
                     if _new_data is not None:
                         format_end_data = "".join(_new_data[1:])
-                        print("New data:\n")
-                        print (str(format_end_data))
+                        API_Twitter().process_twitter_account(format_end_data)
                 time.sleep(0.5)
-        except NameError:
-            SystemExit(1)
+        except ValueError as e:
+            ChromeNotifyLogHandler().main()
+        except Exception as e:
+            print('\x1b[33mERROR: 由API_Notify 發出異常:\033[0m')
+            logging.warning('其他錯誤')
+            print(type(e))
+            print(e)
+                
 
