@@ -88,14 +88,14 @@ class ChromeNotifyLogHandler:
                     _new_data = self.get_new_data()
                     if _new_data is not None:
                         format_end_data = "".join(_new_data[1:])
+                        format_end_data = str(format_end_data.strip())
                         API_Twitter().process_twitter_account(format_end_data)
                 time.sleep(0.5)
         except ValueError as e:
+            # 如果沒有Twitter匹配失敗時就返回這個錯誤，然後繼續迴圈
             ChromeNotifyLogHandler().main()
         except Exception as e:
             print('\x1b[33mERROR: 由API_Notify 發出異常:\033[0m')
             logging.warning('其他錯誤')
             print(type(e))
             print(e)
-                
-
