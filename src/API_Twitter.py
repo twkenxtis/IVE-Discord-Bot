@@ -22,10 +22,10 @@ class API_Twitter:
         current_dir = os.getcwd()
         self.Twitter_cache_list = []
         self.Twitter_cache_dict_pkl = os.path.join(
-            current_dir, '..', 'assets', 'Twitter_cache_dict.pkl'
+            current_dir, 'assets', 'Twitter_cache_dict.pkl'
         )
         self.Twitter_dict_json = os.path.join(
-            current_dir, '..', 'assets', 'Twitter_dict.json'
+            current_dir, 'assets', 'Twitter_dict.json'
         )
 
         logging.basicConfig(
@@ -33,10 +33,6 @@ class API_Twitter:
             handlers=[
                 ColoredLogHandler(
                     fmt=logging.BASIC_FORMAT,
-                    file_path = os.path.join(current_dir, './', 'logs', 'twitter', 'log.txt'),
-                    debug_file_path = os.path.join(
-                        current_dir, './', 'logs', 'twitter', 'DEBUG_log.txt'
-                    ),
                 )
             ],
         )
@@ -59,14 +55,20 @@ class API_Twitter:
         tuple(binary_search_result -> True, return value || twitter_link(Hardcode), twitter_post_id)
         """
         if match_output_tuple is None:
-            SystemExit(0)
+            Error_Log_Handler.error_log()
+            raise ValueError(False)
         else:
             return tuple(match_output_tuple), re_Tweet_check
 
     
     def process_twitter_account(self, input_notify):
-
-        match_output_tuple, re_Tweet_check = self.match_twitter_account(input_notify)
+        
+        result_tuple = self.match_twitter_account(input_notify)
+        
+        if result_tuple is None:
+            Error_Log_Handler.error_log()
+        else:
+            match_output_tuple, re_Tweet_check = self.match_twitter_account(input_notify)
 
         if re_Tweet_check == match_output_tuple[1] and re_Tweet_switch == True:
             print(
@@ -75,14 +77,11 @@ class API_Twitter:
                 "\033[36m API_Twitter.py\033[91m \033[38;2;255;255;179m"
                 "\033[0m將 \033[36mre_Tweet_switch\033[0m 變數設為\033[33m \033[36mFalse\033[0m"
             )
-            SystemExit(0)
         elif match_output_tuple is None:
-            SystemExit(0)
-
+            pass
         # match_output_tuple[0] is binary search bool
         elif bool(match_output_tuple[0]) is False:
-            Error_Log_Handler.error_log()
-            SystemExit(0)
+            pass
         elif not match_output_tuple is False:
             self.process_valid_tweet(match_output_tuple)
     
@@ -105,7 +104,7 @@ class API_Twitter:
         # list(Twitter_cache_list)  ['qcpk0203','c682e42712551f88dfcefe076e2aeb93']
         self.Twitter_cache_list.append(Twitter_id)
         self.Twitter_cache_list.append(MD5)
-
+        
         is_in_Dict = Key_Exists_in_Dict().dict_key_found(MD5)
 
         if int(is_in_Dict) == 1:
@@ -121,8 +120,8 @@ class API_Twitter:
 
         # 開始存入 value 到 ../assets/Twitter_cache_dict.pkl
         try:
-            with open(self.Twitter_cache_dict_pkl, "rb") as file:
-                existing_data = pickle.load(file)
+            with open(self.Twitter_cache_dict_pkl, "rb") as pkl:
+                existing_data = pickle.load(pkl)
         except FileNotFoundError:
             with open(self.Twitter_cache_dict_pkl, "wb") as pkl:
                 pickle.dump(list(self.Twitter_cache_list), pkl)
@@ -133,11 +132,11 @@ class API_Twitter:
 
         # 將新的數據追加到現有數據中
         existing_data.append(self.Twitter_cache_list)
-
+        
         # [['qcpk0203', 'c682e42712551f88dfcefe076e2aeb93']]
         # 將更新後的數據寫入文件
-        with open(self.Twitter_cache_dict_pkl, "wb") as file:
-            pickle.dump(existing_data, file)
+        with open(self.Twitter_cache_dict_pkl, "wb") as pkl:
+            pickle.dump(existing_data, pkl)
 
 
 class TwitterEntry_re_Tweet:
@@ -185,7 +184,7 @@ class Key_Exists_in_Dict:
     def read_twitter_dict(self):
 
         current_dir = os.getcwd()
-        file_path = os.path.join(current_dir, '..', 'assets',  'Twitter_dict.json')
+        file_path = os.path.join(current_dir, 'assets',  'Twitter_dict.json')
         if os.path.isfile(file_path):
             with open(file_path, "r") as f:
                 twitter_dict = json.load(f)
@@ -208,14 +207,3 @@ class Key_Exists_in_Dict:
                 return int(1)  # FOUND
             else:
                 return int(0)  # NOT FOUND
-
-
-if __name__ == "__main__":
-
-    # 開發用
-
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    DEV_PATH = os.path.join("decode_printer.txt")
-    # 正式環境需讀取 000003_debin.log 檔案的內容
-
-    API_Twitter().process_twitter_account(DEV_PATH)
