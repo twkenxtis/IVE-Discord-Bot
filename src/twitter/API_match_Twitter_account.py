@@ -18,6 +18,10 @@ class TwitterAccountProcessor:
         handlers=[
             ColoredLogHandler(
                 fmt=logging.BASIC_FORMAT,
+                file_path = os.path.join(current_dir, 'src', 'logs', 'twitter', 'log.txt'),
+                debug_file_path = os.path.join(
+                    current_dir, 'src', 'logs', 'twitter', 'DEBUG_log.txt'
+                ),
             )
         ],
     )
@@ -108,10 +112,8 @@ class Error_Log_Handler:
         pass
 
     def error_log():
-        cyan = '\033[96m'
-        reset_ASCII = '\033[0m'
         current_time = datetime.datetime.now()
-        print(f"{current_time} ─ {cyan}新通知檢測中，請稍後... {reset_ASCII}")
+        print(current_time)
         logging.info("Twitter Account match failed.，Can't find Twitter username in target.")
         return
 
