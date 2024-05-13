@@ -8,7 +8,7 @@ from src.setting import check_chrome_notify_log
 # 設定基本的日誌設定
 
 logging.basicConfig(
-    level=logging.DEBUG, handlers=[ColoredLogHandler(fmt=logging.BASIC_FORMAT)]
+    level=logging.INFO, handlers=[ColoredLogHandler(fmt=logging.BASIC_FORMAT)]
 )
 
 
