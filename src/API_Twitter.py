@@ -13,7 +13,7 @@ from src.twitter.Twitter_rss_process import *
 # TODO:未來可能寫 TOML 或 Table文件來寫白名單
 
 # 是否開啟轉推阻擋功能 Default: False
-re_Tweet_switch = False
+re_Tweet_switch = True
 
 
 class API_Twitter:
@@ -184,7 +184,7 @@ class Key_Exists_in_Dict:
     def read_twitter_dict(self):
 
         current_dir = os.getcwd()
-        file_path = os.path.join(current_dir, '', 'assets',  'Twitter_dict.json')
+        file_path = os.path.join(current_dir, '../../assets',  'Twitter_dict.json')
         
         print('Debug from API_Twitter: 189Line file path check', file_path)
         
