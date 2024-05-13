@@ -287,7 +287,13 @@ class TwitterMatcher:
     def match_twitter_entry(self, hashtags):
         # 調用TwitterEntry_Tag_Processor中的match_twitter_entry函數來匹配標籤
         match_tags = TwitterEntry_Tag_Processor.match_twitter_entry(hashtags)
-        return list(match_tags)
+
+        if type(match_tags) == bool:
+            match_tags = ['None']
+            match_tags = list(match_tags)
+            return list(match_tags)
+        else:
+            return list(match_tags)
 
     def save_to_pkl(self):
         try:
