@@ -74,8 +74,9 @@ logging.basicConfig(
         fmt=logging.BASIC_FORMAT, file_path='./logs\\discord\\log.txt', debug_file_path='./logs\\discord\\DEBUG_log.txt')],
 )
 
+
 class TimeDifferenceCalculator:
-    
+
     def __init__(self):
         pass
 
@@ -93,8 +94,9 @@ class TimeDifferenceCalculator:
 
     @staticmethod
     def main(input_time_cal):
-    # 格式為 "YYYY/MM/DD HH:MM:SS"
-        time_difference_seconds = TimeDifferenceCalculator.calculate_time_difference(input_time_cal)
+        # 格式為 "YYYY/MM/DD HH:MM:SS"
+        time_difference_seconds = TimeDifferenceCalculator.calculate_time_difference(
+            input_time_cal)
         return float(time_difference_seconds)
 
 
@@ -258,7 +260,7 @@ class Match_wich_minive():
         if minive_key is not None:
             return str(minive_value)
         else:
-            #logging.info("沒有匹配到的帳號")
+            # logging.info("沒有匹配到的帳號")
             pass
 
 
@@ -296,21 +298,25 @@ client = commands.Bot(command_prefix=None, intents=intents)
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 file_path_PKL = '../assets/Twitter_cache_dict.pkl'
 
+
 def format_urls(url_string):
     url_list = url_string.split(" ")
-    formatted_urls = [f"[{index+1}]({url})" for index, url in enumerate(url_list)]
+    formatted_urls = [
+        f"[{index+1}]({url})" for index, url in enumerate(url_list)]
     return ' '.join(formatted_urls)
+
 
 def discord_twitter():
     global TOKEN
-    
+
     async def send_discord_message(channel, ive_members, embed, button_view, twitter_id, formatted_urls_str, time_offset):
         if time_offset < 1.5 and channel is not None:
             dc_message = await channel.send(str(formatted_urls_str))
             dc_embed = await channel.send(embed=embed, view=button_view)
             if dc_message and dc_embed:
                 Twitter_PKL_popup.remove_first_values_from_twitter(2)
-                print(f'發送到 {ive_members} 頻道 / Twitter帳號: {twitter_id} / OK，PKL Cache 已經清除')
+                print(
+                    f'發送到 {ive_members} 頻道 / Twitter帳號: {twitter_id} / OK，PKL Cache 已經清除')
             else:
                 logging.critical('Discord 消息發送失敗')
         else:
@@ -319,22 +325,25 @@ def discord_twitter():
 
     async def check_file_and_trigger_send_embed():
         PKL_READ = False
-        print('\033[38;2;255;179;255mKeeping detecting Twitter_cache_dict.pkl length...\033[m')
-        
+        print(
+            '\033[38;2;255;179;255mKeeping detecting Twitter_cache_dict.pkl length...\033[m')
+
         while True:
             if os.path.exists(file_path_PKL):
                 with open(file_path_PKL, 'rb') as pkl:
                     pkl_data = pickle.load(pkl)
                     if len(pkl_data) >= 2 and pkl_data[1] is not None:
-                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
+                        print(
+                            f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
                         PKL_READ = True
                         await send_embed(PKL_READ)
                     elif len(pkl_data) >= 2 and pkl_data[1] is None:
-                        print(f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
+                        print(
+                            f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
                         Twitter_PKL_popup.remove_first_values_from_twitter(2)
                         logging.info('此貼文沒有符合的#IVE Tag，已清除PKL快取資料...')
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
 
     @client.event
     async def on_ready():
@@ -342,36 +351,40 @@ def discord_twitter():
         await check_file_and_trigger_send_embed()
 
     @client.event
-    async def send_embed(PKL_READ :bool):
-    # 讀取 Twitter_cache_dict.pkl
+    async def send_embed(PKL_READ: bool):
+        # 讀取 Twitter_cache_dict.pkl
         if PKL_READ is True:
-            ive_members = Twitter.read_twitter_pkl()[1][0] # REI or GROUPS
-            MD5 = Twitter.read_twitter_pkl()[0][1] # 字典的Key
-            
+            ive_members = Twitter.read_twitter_pkl()[1][0]  # REI or GROUPS
+            MD5 = Twitter.read_twitter_pkl()[0][1]  # 字典的Key
+
             channel_id = Match_wich_account().get_channel_id(str(ive_members))
             minive_link = Match_wich_minive().get_minive_link(str(ive_members))
 
             key = MD5
             if key in Twitter.read_twitter_dict():
                 value = Twitter.read_twitter_dict()[key]
-                twitter_author = value[0] # 七次撲空
-                twitter_link = value[1] # https://twitter.com/qcpk0203/status/1784927109426933969
-                twitter_id = value[1][20:27] # qcpk0203 slice[20:27]是因為網址是固定的長度
-                twitter_entry = value[2] # Twitter 貼文內容
-                post_time = value[3] # 2024/04/29 20:45:59 (貼文發布時間)
-                sys_time_from_dict = value[4]  # 2024/05/10 20:08:07 (存入資料時系統時間)
-                img_count = value[5] # int 照片數量
-                twitter_all_img = value[6] # 所有的照片網址
-                author_avatar = value[7] # # 貼文作者的頭像網址
-                
+                twitter_author = value[0]  # 七次撲空
+                # https://twitter.com/qcpk0203/status/1784927109426933969
+                twitter_link = value[1]
+                # qcpk0203 slice[20:27]是因為網址是固定的長度
+                twitter_id = value[1][20:27]
+                twitter_entry = value[2]  # Twitter 貼文內容
+                post_time = value[3]  # 2024/04/29 20:45:59 (貼文發布時間)
+                # 2024/05/10 20:08:07 (存入資料時系統時間)
+                sys_time_from_dict = value[4]
+                img_count = value[5]  # int 照片數量
+                twitter_all_img = value[6]  # 所有的照片網址
+                author_avatar = value[7]  # 貼文作者的頭像網址
+
                 time_offset = TimeDifferenceCalculator.main(sys_time_from_dict)
                 channel = client.get_channel(channel_id)
 
-                embed = discord.Embed(title = twitter_author, url=twitter_link, color=0xed68a6)
+                embed = discord.Embed(
+                    title=twitter_author, url=twitter_link, color=0xed68a6)
                 embed.set_author(
                     name='New post from  ' + '@(' + str(twitter_id) + ')',
                     icon_url=minive_link,
-                    #url=twitter_link
+                    # url=twitter_link
                 )
                 embed.add_field(
                     name='　',
@@ -379,19 +392,19 @@ def discord_twitter():
                     inline=True,
                 )
                 embed.set_thumbnail(url=author_avatar)
-                post_time_obj = datetime.strptime(post_time, '%Y/%m/%d %H:%M:%S')
+                post_time_obj = datetime.strptime(
+                    post_time, '%Y/%m/%d %H:%M:%S')
                 embed.set_footer(text='MIT © 2024 omenbibi   ' + '🖼️ ' + str(img_count),
-                                icon_url='https://i.meee.com.tw/caHwoj6.png')
+                                 icon_url='https://i.meee.com.tw/caHwoj6.png')
                 embed.timestamp = post_time_obj
                 button_url = twitter_link
                 button_view = ButtonView(url=button_url)
-                
+
                 formatted_urls_str = format_urls(twitter_all_img)
                 await send_discord_message(channel, ive_members, embed, button_view, twitter_id, formatted_urls_str, time_offset)
-                
-                
+
     client.run(TOKEN)
-        
+
 
 if __name__ == "__main__":
     discord_twitter()
