@@ -1,0 +1,6 @@
+discord.py
+fake-useragent
+feedparser
+httpx
+instaloader
+requests
