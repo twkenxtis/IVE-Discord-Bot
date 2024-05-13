@@ -21,8 +21,8 @@ class Twitter:
 
     def start_request(self, twitter_account_name: str):
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
-        # rss_request = f'http://127.0.0.1:1200/twitter/media/{twitter_account_name}?limit=1'
-        rss_request = f"http://127.0.0.1:8153/{twitter_account_name}.xml"
+        rss_request = f'http://127.0.0.1:1200/twitter/media/{twitter_account_name}?limit=1'
+        #rss_request = f"http://127.0.0.1:8153/{twitter_account_name}.xml"
 
         # 獲得原始的 HTTP 響應內容
         self.http_response_content = self.get_feed(rss_request)
@@ -41,7 +41,6 @@ class Twitter:
         if each_request.get_response_content() is None:
             Twitter_PKL_popup.remove_first_values_from_twitter(1)
             print("\033[91m異常處理中.... PKL Cache 已經清除\033[0m")
-            SystemExit(1)
         else:
             # HTTP 請求的回應內容
             return str(each_request.get_response_content())
@@ -173,7 +172,7 @@ class Twitter:
 
         # 把Twitter貼文網址MD5當Key
         MD5 = hashlib.md5(entry.link.encode("utf-8")).hexdigest()
-
+        
         # 把字典丟到update_twitter_dict
         twitter_rss_dict.update_twitter_dict({MD5: tuple_of_dict})
 
@@ -256,6 +255,7 @@ class TwitterMatcher:
 
     def match_ive_members(self):
         # 從pickle文件讀取數據，然後從JSON文件讀取Twitter字典進行匹配
+        #TODO: PKL 兩邊都存不進去 字典可以 路徑要修改可以參考一下字典!
         with open(self.Twitter_cache_dict_pkl, "rb") as file:
             pkl_data = pickle.load(file)
         with open("../../assets/Twitter_dict.json", "r") as j:
@@ -307,6 +307,7 @@ class TwitterMatcher:
         # 更新並添加到最尾部，然後保存到pickle文件
         # [['qcpk0203', 'c682e42712551f88dfcefe076e2aeb93'], ['REI']]
         if len(list(existing_data)) >= 1:
+            logging.info(f"資料已存放到PKL Cache.")
             existing_data.append(self.match_tags)
             with open(self.Twitter_cache_dict_pkl, "wb") as file:
                 pickle.dump(existing_data, file)
