@@ -57,7 +57,7 @@ class ChromeNotifyLogHandler:
         current_time = datetime.now()
         print(current_time)
         
-        print("\033[38;2;204;255;102mNotification of Continuous checking...\033[0m")
+        print("\033[38;2;204;255;102m新通知檢測中，請稍後...\033[0m")
         
         
         with open(self.chrome_003_log, "r", encoding="utf-8", errors="ignore") as old:
