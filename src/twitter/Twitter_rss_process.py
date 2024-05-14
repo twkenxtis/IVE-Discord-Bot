@@ -99,9 +99,9 @@ class Twitter:
         twitter_imgs_description = " ".join(
             map(str, list(twitter_imgs_description)))
 
-        # 如果沒有圖片URL，將其設置為None
+        # 如果沒有圖片URL，將其設置為 空字串
         twitter_imgs_description = (
-            None
+            " "
             if len(list(twitter_imgs_description)) == 0
             else str(twitter_imgs_description)
         )
@@ -129,7 +129,7 @@ class Twitter:
             author_avatar = url_element.text
             if re.match(pattern, author_avatar):
                 return author_avatar
-        return None  # 如果沒有匹配的URL，返回None
+        return ""  # 如果沒有匹配的URL，返回 空字串
 
     def process_entry(self, entry, pub_date_tw, description):
         filtered_description_title = self.filter_description(description)
@@ -196,7 +196,7 @@ class Twitter:
                 r"<br\s*/?>", "\n", filtered_description_title.group(1)
             )
         else:
-            filtered_description_title = None
+            filtered_description_title = ""
         return str(filtered_description_title)
 
 
