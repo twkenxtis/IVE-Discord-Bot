@@ -342,15 +342,20 @@ def discord_twitter():
                             f"\033[38;2;204;0;102m檢測新訊息 \033[0m{datetime.now()}  \033[38;2;102;140;255m{pkl_data}\033[0m")
                         Twitter_PKL_popup.remove_first_values_from_twitter(2)
                         logging.info('此貼文沒有符合的#IVE Tag，已清除PKL快取資料...')
+            else:
+                logging.CRITICAL(
+                    "Discord.py fail to read Twitter_cache_dict.pkl data")
+                raise Exception(FileNotFoundError(
+                    f"PKL檔案不存在: {file_path_PKL}"))
 
             await asyncio.sleep(1)
 
-    @client.event
+    @ client.event
     async def on_ready():
         print(f"目前登入身份 --> {client.user}")
         await check_file_and_trigger_send_embed()
 
-    @client.event
+    @ client.event
     async def send_embed(PKL_READ: bool):
         # 讀取 Twitter_cache_dict.pkl
         if PKL_READ is True:
@@ -402,6 +407,9 @@ def discord_twitter():
 
                 formatted_urls_str = format_urls(twitter_all_img)
                 await send_discord_message(channel, ive_members, embed, button_view, twitter_id, formatted_urls_str, time_offset)
+        else:
+            logging.WARNING('請檢查PKL 快取資料，該狀態不應該被觸發Discord EMBED 物件')
+            raise Exception('PKL 快取資料異常')
 
     client.run(TOKEN)
 
