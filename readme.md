@@ -6,6 +6,8 @@ Support **Python 3.8 - 3.12**
 
 # How to setup :
 ```
+python3 -m venv path/to/venv
+source path/to/venv/bin/activate
 git clone https://github.com/twkenxtis/IVE-Discord-Bot
 cd IVE-Discord-Bot
 pip3 install -r requirements.txt
