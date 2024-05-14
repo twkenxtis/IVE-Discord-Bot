@@ -10,8 +10,6 @@ from twitter.API_match_Twitter_account import (
 )
 from twitter.Twitter_rss_process import *
 
-# TODO:未來可能寫 TOML 或 Table文件來寫白名單
-
 # 是否開啟轉推阻擋功能 Default: False
 re_Tweet_switch = True
 
@@ -20,7 +18,7 @@ class API_Twitter:
 
     def __init__(self):
 
-        current_dir = os.getcwd()
+        current_dir = os.path.dirname(os.path.abspath(__file__))
         parent_dir = os.path.dirname(current_dir)
 
         self.Twitter_cache_list = []
@@ -148,6 +146,9 @@ class API_Twitter:
 
         # 將新的數據追加到現有數據中
         existing_data.append(self.Twitter_cache_list)
+
+        print('\033[9;33;40mAPI_Twitter_PKL 路徑:\033[0m',
+              self.Twitter_cache_dict_pkl)
 
         # [['qcpk0203', 'c682e42712551f88dfcefe076e2aeb93']]
         # 將更新後的數據寫入文件
