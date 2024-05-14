@@ -136,9 +136,9 @@ class Twitter_account_list:
         RESTORE_LIST_path = os.path.join('restore', 'restore_rss_list.py')
         RESTORE_PKL_path = os.path.join('restore', 'restore_rss_pkl.py')
         json_file_path = os.path.join(
-            script_dir, '../..', 'config', 'rss_list.json')
+            script_dir, '..', '..', 'config', 'rss_list.json')
         savebin_file_path = os.path.join(
-            script_dir, '../..', 'assets', 'temp', 'json_file_size.bin'
+            script_dir, '..', '..', 'assets', 'temp', 'json_file_size.bin'
         )
         pickle_file_path = os.path.join(
             script_dir, '../..', 'assets', 'rss_list.pkl')
