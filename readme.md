@@ -161,8 +161,3 @@ trigger your local chrome notifications and send GET request for [**RSSHUB**](ht
   Setp2 : Make sure Allow Twitter and instagram **Web Push API** ， Because sometimes,privacy-focused browser extensions may block it.
   
   Setp3 : goto ```/config/setting/``` and ```/config/.env``` wrote your Discord Token and chrome notify locate.
-  
-
-## In the END, I don't have Mac so I'm not sure is working on Mac....
-
-> If your trying running on mac try to find 000003.log then check file authority!
