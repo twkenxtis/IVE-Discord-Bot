@@ -22,13 +22,13 @@ class ColoredLogHandler(logging.StreamHandler):
 
         # 定義不同等級的顏色映射
         self.color_mapping = {
-            logging.DEBUG: '\033[92m',           # 浅绿色
+            logging.DEBUG: '\033[92m',           # 淺綠色
             logging.INFO: '\033[96m',            # 青色
             logging.WARNING: '\033[38;5;214m',   # 金黃色
-            logging.ERROR: '\x1b[31m',           # 深红色
-            logging.CRITICAL:  '\033[91m',      # 深紫红色
+            logging.ERROR: '\x1b[31m',           # 深紅色
+            logging.CRITICAL:  '\033[91m',      # 深紫紅色
         }
-        self.reset_color = '\033[0m'  # 重置颜色
+        self.reset_color = '\033[0m'  # 重置顏色
         self._fmt = fmt or logging.BASIC_FORMAT
 
         # 如果指定了文件路徑，則創建一個文件處理器
@@ -56,7 +56,7 @@ class ColoredLogHandler(logging.StreamHandler):
         return formatter.format(record)
 
     def emit(self, record):
-        # 將日誌訊息輸出到控制台
+        # 將日誌訊息輸出到控製臺
         super().emit(record)
 
         # 如果有文件處理器，則將日誌訊息寫入到文件
@@ -343,7 +343,7 @@ def discord_twitter():
                         Twitter_PKL_popup.remove_first_values_from_twitter(2)
                         logging.info('此貼文沒有符合的#IVE Tag，已清除PKL快取資料...')
             else:
-                logging.CRITICAL(
+                logging.error(
                     "Discord.py fail to read Twitter_cache_dict.pkl data")
                 raise Exception(FileNotFoundError(
                     f"PKL檔案不存在: {file_path_PKL}"))
@@ -353,6 +353,7 @@ def discord_twitter():
     @ client.event
     async def on_ready():
         print(f"目前登入身份 --> {client.user}")
+        await client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Accendio"))
         await check_file_and_trigger_send_embed()
 
     @ client.event
