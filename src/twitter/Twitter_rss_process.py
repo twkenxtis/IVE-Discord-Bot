@@ -99,9 +99,9 @@ class Twitter:
         twitter_imgs_description = " ".join(
             map(str, list(twitter_imgs_description)))
 
-        # 如果沒有圖片URL，將其設置為 空字串
+        # 如果沒有圖片URL，將其設置為None
         twitter_imgs_description = (
-            ""
+            None
             if len(list(twitter_imgs_description)) == 0
             else str(twitter_imgs_description)
         )
@@ -300,10 +300,13 @@ class TwitterMatcher:
 
                 # 檢測標籤是哪位成員或多位成員 如果是多位成員，硬編碼 ["GROUPS"]
 
+                print('DEBUG Matchtags')
                 print(self.match_tags)
                 print(type(self.match_tags))
 
-                if self.match_tags[0] is False:
+                if self.match_tags is False:
+                    self.match_tags = None  # 沒有匹配到標籤 Discord.py 會過濾掉
+                elif self.match_tags[0] is False:
                     self.match_tags = ["GROUPS"]
                 else:
                     self.match_tags = list(self.match_tags[1][0])
@@ -389,6 +392,7 @@ class TwitterEntry_Tag_Processor:
 
     @ staticmethod
     def match_twitter_entry(hashtags: list):
+
         # 使用哈希 MAP 搜索
         return TwitterEntry_Tag_Processor.search_with_hashmap(hashtags)
 
@@ -398,9 +402,9 @@ class TwitterEntry_Tag_Processor:
         # 讀取 ive_hashtag.pkl 文件
         with open("../../assets/ive_hashtag.pkl", "rb") as _pkl:
             pkl_dict = pickle.load(_pkl)
-            found_values = []
-            found_flag = False
-            is_equal = True
+        found_values = []
+        found_flag = False
+        is_equal = True
 
         # 遍歷搜索關鍵詞列表
         for n in tag_list:
@@ -465,16 +469,7 @@ class Twitter_PKL_popup:
         removed_values = []
         for _ in range(count):
             removed_values.append(loaded_list.pop(0))
-            pass
-
-        # 檢查是否只剩下一個空清單，若是則刪除它
-        if len(loaded_list) == 1 and not loaded_list[0]:
-            print("只剩下一個空清單，刪除中")
-            loaded_list = []
-            return
 
         # 將更新後的資料存回 pickle 檔案
         with open(pkl_patch, "wb") as f:
             pickle.dump(loaded_list, f)
-            print('清單應為空:', loaded_list)
-            return
