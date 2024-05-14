@@ -8,7 +8,7 @@ Support **Python 3.8 - 3.12**
 ```
 git clone https://github.com/twkenxtis/IVE-Discord-Bot
 cd IVE-Discord-Bot
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 setting up Discord TOKEN
