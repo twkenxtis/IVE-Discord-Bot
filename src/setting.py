@@ -14,7 +14,6 @@ def check_chrome_notify_log():
     current_dir = os.getcwd()
     setting_file = os.path.join(current_dir, '../config', 'setting.json')
     
-    #print('Deubg from setting.py Line17 filepath check', setting_file)
 
     with open(str(setting_file), 'r') as json_file:
         setting_chrome_notify = json.load(json_file)
