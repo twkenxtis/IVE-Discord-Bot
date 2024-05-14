@@ -388,7 +388,7 @@ def discord_twitter():
                 embed = discord.Embed(
                     title=twitter_author, url=twitter_link, color=0xed68a6)
                 embed.set_author(
-                    name='New post from  ' + '@(' + str(twitter_id) + ')',
+                    name='New post from  ' + '(@' + str(twitter_id) + ')',
                     icon_url=minive_link,
                     # url=twitter_link
                 )
