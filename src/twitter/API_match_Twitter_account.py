@@ -89,11 +89,11 @@ class TwitterAccountProcessor:
             ),
             None,
         )
-        # 匹配/user/status/模式的内容
+        # 匹配/user/status/模式的內容
         twitter_username = re.search(
             r"/(?P<user>[A-Za-z0-9_]+)/status/", twitter_account_data
         )
-        # 匹配/status/user模式的内容
+        # 匹配/status/user模式的內容
         twitter_post_id = re.search(
             r"/status/(?P<user>[A-Za-z0-9_]+)", twitter_account_data
         )
