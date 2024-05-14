@@ -10,11 +10,11 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 
 import feedparser
-import src.http_request
+import http_request
 
 
 class Twitter:
-    
+
     def __init__(self) -> None:
         self.twitter_rss_dict = Twitter_Dict_Manager()
         pass
@@ -22,13 +22,13 @@ class Twitter:
     def start_request(self, twitter_account_name: str):
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         rss_request = f'http://127.0.0.1:1200/twitter/media/{twitter_account_name}?limit=1'
-        #rss_request = f"http://127.0.0.1:8153/{twitter_account_name}.xml"
+        # rss_request = f"http://127.0.0.1:8153/{twitter_account_name}.xml"
 
         # 獲得原始的 HTTP 響應內容
         self.http_response_content = self.get_feed(rss_request)
-        
+
         if self.http_response_content is not None:
-            
+
             # 使用 feedparser 解析 RSS 內容
             self.parsed_rssfeed = feedparser.parse(self.http_response_content)
 
@@ -36,8 +36,9 @@ class Twitter:
             self.process_feed(self.parsed_rssfeed)
 
     def get_feed(self, rss_request: str) -> str:
-        each_request = src.http_request.HTTP3Requester(str(rss_request))
-        asyncio.run(each_request.start_requests(1))  # How many requests to send at once
+        each_request = http_request.HTTP3Requester(str(rss_request))
+        # How many requests to send at once
+        asyncio.run(each_request.start_requests(1))
         if each_request.get_response_content() is None:
             Twitter_PKL_popup.remove_first_values_from_twitter(1)
             print("\033[91m異常處理中.... PKL Cache 已經清除\033[0m")
@@ -53,7 +54,8 @@ class Twitter:
             # 遍歷RSS描述內容
             for entry in rssfeed.entries:
                 # 轉自訂格式 GMT Sun, 05 May 2024 10:52:35 GMT -> 2024/05/05 10:52:35
-                pub_date_tw = gmt_converter.convert_time_gmt_to_utc(entry.published)
+                pub_date_tw = gmt_converter.convert_time_gmt_to_utc(
+                    entry.published)
                 description = entry.description
 
                 # 描述內容比較多要過濾掉多餘的內容，另外用函式處理
@@ -94,11 +96,12 @@ class Twitter:
         twitter_description_imgs_count = len(list(twitter_imgs_description))
 
         # 將圖片URL列表轉換為字符串，以便保存到字典中
-        twitter_imgs_description = " ".join(map(str, list(twitter_imgs_description)))
+        twitter_imgs_description = " ".join(
+            map(str, list(twitter_imgs_description)))
 
-        # 如果沒有圖片URL，將其設置為None
+        # 如果沒有圖片URL，將其設置為 空字串
         twitter_imgs_description = (
-            None
+            ""
             if len(list(twitter_imgs_description)) == 0
             else str(twitter_imgs_description)
         )
@@ -133,9 +136,12 @@ class Twitter:
         author_avatar = self.match_author_avatar(self.http_response_content)
 
         # 從描述找出所有圖片的URL
-        twitter_imgs_description, twitter_description_imgs_count = (
-            self._process_tweet_images(description)
-        )
+        try:
+            twitter_imgs_description, twitter_description_imgs_count = (
+                self._process_tweet_images(description)
+            )
+        except ValueError as e:
+            logging.error(f"Error processing tweet images: {e}")
 
         # 創建字典 value 的 Tuple 把整理好的資訊全部放進去
         self._create_tuple_and_update_dict(
@@ -147,7 +153,7 @@ class Twitter:
             author_avatar,
             self.twitter_rss_dict,
         )
-        
+
     def _create_tuple_and_update_dict(
         self,
         entry,
@@ -172,7 +178,7 @@ class Twitter:
 
         # 把Twitter貼文網址MD5當Key
         MD5 = hashlib.md5(entry.link.encode("utf-8")).hexdigest()
-        
+
         # 把字典丟到update_twitter_dict
         twitter_rss_dict.update_twitter_dict({MD5: tuple_of_dict})
 
@@ -196,26 +202,28 @@ class Twitter:
 
 class Twitter_Dict_Manager:
 
-    def __init__(self, filename="../../assets/Twitter_dict.json"):
-        # 初始化 Twitter 字典管理器，設置文件名和字典
+    def __init__(self):
         self.twitter_dict = {}
-        self.filename = filename
+        self.filename = os.path.abspath(os.path.join(
+            os.path.dirname(__file__),
+            "..", "..", "assets", "Twitter_dict.json"))
         self.load_from_json()
-        pass
 
     def load_from_json(self):
 
         # 檢查文件是否存在且大小大於0
         if os.path.exists(self.filename) and os.path.getsize(self.filename) > 0:
-            # 將工作目錄設置為文件所在目錄
-            os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+            print("\n\033[9;33;40m路徑追蹤\033[0m" +
+                  'class Twitter_Dict_Manager ', self.filename)
 
             # 打開 JSON 文件並讀取其內容
             with open(self.filename, "r") as json_file:
                 file_content = json_file.read()
 
                 # 如果文件內容不為空，則將其轉換為字典並賦值給 twitter_dict
-                self.twitter_dict = json.loads(file_content) if file_content else {}
+                self.twitter_dict = json.loads(
+                    file_content) if file_content else {}
         else:
             # 如果文件不存在或大小為0，則初始化 twitter_dict 為空字典
             self.twitter_dict = {}
@@ -241,13 +249,16 @@ class Twitter_Dict_Manager:
 class TwitterMatcher:
 
     # 定義類變量，用於指定pickle文件的路徑
-    Twitter_cache_dict_pkl = "../../assets/Twitter_cache_dict.pkl"
+    Twitter_cache_dict_pkl = os.path.abspath(os.path.join(
+        os.path.dirname(__file__),
+        "IVE-Discord-Bot-main", "..", "..", "..", "assets", "Twitter_cache_dict.pkl"))
 
     def __init__(self):
         # 初始化實例變量match_tags為None，用於儲存匹配到的標籤
         self.match_tags = None
+        self.Twitter_cache_dict_pkl = TwitterMatcher.Twitter_cache_dict_pkl
         pass
-    
+
     def start_match(self):
         # 開始匹配流程：首先匹配IVE成員，然後將結果保存至pickle文件
         self.match_ive_members()
@@ -257,17 +268,21 @@ class TwitterMatcher:
         # 從pickle文件讀取數據，然後從JSON文件讀取Twitter字典進行匹配
         with open(self.Twitter_cache_dict_pkl, "rb") as file:
             pkl_data = pickle.load(file)
-            
-        json_file_path = os.path.join(os.getcwd(), '../../assets', 'Twitter_dict.json')
-        
-        print('DEBUG from Twitter_rss_process checking json file path in line 263: \n', json_file_path)
-        
-        with open(json_file_path, "r") as j:
+
+        json_dict_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), "..", "..", "assets", "Twitter_dict.json"))
+
+        with open(json_dict_path, "r") as j:
             twitter_dict = json.load(j)
+
+            print("\n\033[9;33;40m路徑追蹤\033[0m" +
+                  'class Key_Exists_in_Dict ', json_dict_path)
 
         # 檢查pkl_data是否不為空
         if len(list(pkl_data)) >= 1:
             MD5 = pkl_data[0][1]
+
+            print('md5 from PKL', MD5)
 
             # 如果pkl中的MD5值存在於twitter字典中，則從字典中取出相應值
             if MD5 in twitter_dict:
@@ -277,33 +292,35 @@ class TwitterMatcher:
                 # 從貼文中提取所有以 # 開頭的標籤
                 hashtags = [h for h in post_entry.split() if h.startswith("#")]
 
+                print(hashtags)
+
                 # 使用提取的標籤匹配標籤並保存到self.match_tags
 
                 self.match_tags = self.match_twitter_entry(hashtags)
 
                 # 檢測標籤是哪位成員或多位成員 如果是多位成員，硬編碼 ["GROUPS"]
 
+                print(self.match_tags)
+                print(type(self.match_tags))
+
                 if self.match_tags[0] is False:
                     self.match_tags = ["GROUPS"]
-                elif self.match_tags[0] is True:
+                else:
                     self.match_tags = list(self.match_tags[1][0])
 
     def match_twitter_entry(self, hashtags):
         # 調用TwitterEntry_Tag_Processor中的match_twitter_entry函數來匹配標籤
         match_tags = TwitterEntry_Tag_Processor.match_twitter_entry(hashtags)
-
-        if type(match_tags) == bool:
-            match_tags = ['None']
-            match_tags = list(match_tags)
-            return list(match_tags)
-        else:
-            return list(match_tags)
+        return match_tags
 
     def save_to_pkl(self):
         try:
             # 嘗試從pickle文件中讀取現有的數據
             with open(self.Twitter_cache_dict_pkl, "rb") as file:
                 existing_data = pickle.load(file)
+
+                print('\033[38;2;255;179;255mRSS_process_PKL 路徑追蹤\033[0m',
+                      self.Twitter_cache_dict_pkl)
         except FileNotFoundError:
             # 如果pickle文件不存在，創建一個新的文件並記錄警告信息
             with open(self.Twitter_cache_dict_pkl, "wb") as pkl:
@@ -318,6 +335,7 @@ class TwitterMatcher:
         # [['qcpk0203', 'c682e42712551f88dfcefe076e2aeb93'], ['REI']]
         if len(list(existing_data)) >= 1:
             logging.info(f"資料已存放到PKL Cache.")
+
             existing_data.append(self.match_tags)
             with open(self.Twitter_cache_dict_pkl, "wb") as file:
                 pickle.dump(existing_data, file)
@@ -360,8 +378,8 @@ class TimeZoneConverter:
 
 
 class SystemTime:
-    
-    @staticmethod
+
+    @ staticmethod
     def format_current_time(format_string="%Y/%m/%d %H:%M:%S"):
         time_current = datetime.now()
         return time_current.strftime(format_string)
@@ -369,24 +387,20 @@ class SystemTime:
 
 class TwitterEntry_Tag_Processor:
 
-    @staticmethod
+    @ staticmethod
     def match_twitter_entry(hashtags: list):
-
         # 使用哈希 MAP 搜索
         return TwitterEntry_Tag_Processor.search_with_hashmap(hashtags)
 
-    @classmethod
+    @ classmethod
     def search_with_hashmap(cls, tag_list):
-
-        # 設置當前目錄為工作目錄
-        os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
         # 讀取 ive_hashtag.pkl 文件
         with open("../../assets/ive_hashtag.pkl", "rb") as _pkl:
             pkl_dict = pickle.load(_pkl)
-        found_values = []
-        found_flag = False
-        is_equal = True
+            found_values = []
+            found_flag = False
+            is_equal = True
 
         # 遍歷搜索關鍵詞列表
         for n in tag_list:
@@ -420,18 +434,18 @@ class TwitterEntry_Tag_Processor:
 class Twitter_PKL_popup:
 
     def remove_first_values_from_twitter(count):
-        file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../../assets/Twitter_cache_dict.pkl",
-        )
+
+        pkl_patch = os.path.abspath(os.path.join(
+            os.path.dirname(__file__),
+            "IVE-Discord-Bot-main", "..", "..", "..", "assets", "Twitter_cache_dict.pkl"))
 
         # 檢查檔案是否存在
-        if not os.path.exists(file_path):
+        if not os.path.exists(pkl_patch):
             print("錯誤：找不到檔案")
             return
         try:
             # 讀取 pickle 檔案中的資料
-            with open(file_path, "rb") as f:
+            with open(pkl_patch, "rb") as f:
                 loaded_list = pickle.load(f)
         except FileNotFoundError:
             print("錯誤：無法從檔案載入資料")
@@ -451,12 +465,16 @@ class Twitter_PKL_popup:
         removed_values = []
         for _ in range(count):
             removed_values.append(loaded_list.pop(0))
+            pass
 
         # 檢查是否只剩下一個空清單，若是則刪除它
         if len(loaded_list) == 1 and not loaded_list[0]:
-            print("只剩下一個空清單，刪除它")
+            print("只剩下一個空清單，刪除中")
             loaded_list = []
+            return
 
         # 將更新後的資料存回 pickle 檔案
-        with open(file_path, "wb") as f:
+        with open(pkl_patch, "wb") as f:
             pickle.dump(loaded_list, f)
+            print('清單應為空:', loaded_list)
+            return
