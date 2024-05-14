@@ -6,8 +6,8 @@ Support **Python 3.8 - 3.12**
 
 # How to setup :
 ```
-git clone https://github.com/twkenxtis/IVE-Discord-Bot \
-cd IVE-Discord-Bot \
+git clone https://github.com/twkenxtis/IVE-Discord-Bot
+cd IVE-Discord-Bot
 pip install -r requirements.txt
 ```
 
