@@ -6,14 +6,14 @@ Support **Python 3.8 - 3.12**
 
 # How to setup :
 ```
-git repo clone twkenxtis/IVE-Discord-Bot \
-cd IVE-Discord-Bot \
+git repo clone twkenxtis/IVE-Discord-Bot
+cd /IVE-Discord-Bot
 pip install -r requirements.txt
 ```
 
 setting up Discord TOKEN
 ```
-cd config \
+cd config 
 vim .env
 ```
 - If want update ive_hashtag.json File using `update_ive_hashtag.py`
@@ -22,7 +22,7 @@ vim .env
   
 Next setup config/settings.json path to chrome notify history path
 ```
-cd /config \
+cd config 
 vim setting.json
 ```
 ### windows
@@ -76,13 +76,77 @@ Ensure that your Docker container is up and running, then examine the Docker log
 
 If all checks out well, you have successfully completed the setup.
 
-# Start the bot!
+## Before Start the bot!
 ```
-cd /src \
-python3 Discord.py \
-cd .. \
-python3 main.py
+cd src 
+vim Discord.py 
 ```
+ Discord.py in line **198** ``Class Match_wich_account()``
+ - Please edit to your own channel ID
+   
+    ```  
+   class Match_wich_account():
+     def channel_id(self, ive_name):
+          channel_id = {
+              "GAEUL": "1237020442183860276",
+              "fallingin__fall": "1237020442183860276",
+              "YUJIN": "1237020290987458643",
+              "_yujin_an": "1237020290987458643",
+              "REI": "1238508631876567120",
+              "reinyourheart": "1238508631876567120",
+              "WONYOUNG": "1237020545527054346",
+              "for_everyoung10": "1237020545527054346",
+              "LIZ": "1237020520092794950",
+              "liz.yeyo": "1237020520092794950",
+              "LEESEO": "1237020484411985950",
+              "eeseooes": "1237020484411985950",
+              "GROUPS": "1237421929229582439"
+          }
+      ```
+- Setp 2
+  
+  change to your own rsshub url in `Twitter_rss_process.py` **line24**
+  
+  For Example my RSSHUB is runnung on http://127.0.0.1:1200
+  I want to get twitter media then limit querry string to 1 post response
+  
+  ```rss_request = f'http://127.0.0.1:1200/twitter/media/{twitter_account_name}?limit=1'```
+ 
+  ```
+  vim src/twitter/Twitter_rss_process.py
+  ```
+
+    Example code:
+
+    ```
+    class Twitter:
+
+    def __init__(self) -> None:
+        self.twitter_rss_dict = Twitter_Dict_Manager()
+        pass
+
+    def start_request(self, twitter_account_name: str):
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+        # Change here to your own rsshub url don't change {twitter_account_name} value.
+        rss_request = f'http://127.0.0.1:1200/twitter/media/{twitter_account_name}?limit=1'
+    ```
+
+# Getting Start!
+
+  Setp1 : run Discord bot first
+  
+    
+    cd src 
+    python3 Discord.py
+    
+    
+  Step2: start API_notify.py to trigger notify
+  
+    
+    cd src 
+    python3 API_notify.py
+    
+  
 
 # How it works?
 trigger your local chrome notifications and send GET request for [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic process send to Discord channel
