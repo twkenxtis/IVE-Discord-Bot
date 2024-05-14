@@ -307,8 +307,6 @@ class TwitterMatcher:
             with open(self.Twitter_cache_dict_pkl, "rb") as file:
                 existing_data = pickle.load(file)
 
-                print('\033[38;2;255;179;255mRSS_process_PKL 路徑追蹤\033[0m',
-                      self.Twitter_cache_dict_pkl)
         except FileNotFoundError:
             # 如果pickle文件不存在，創建一個新的文件並記錄警告信息
             with open(self.Twitter_cache_dict_pkl, "wb") as pkl:
