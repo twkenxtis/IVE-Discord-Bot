@@ -16,7 +16,7 @@ class ColoredLogHandler(logging.StreamHandler):
             logging.ERROR: "\x1b[31m",  # 深紅色
             logging.CRITICAL: "\033[91m",  # 深紫紅色
         }
-        self.reset_color = "\033[0m"  # 重置顔色
+        self.reset_color = "\033[0m"  # 重置顏色
         self._fmt = fmt or logging.BASIC_FORMAT
 
         # 如果指定了文件路徑，則創建一個文件處理器
@@ -64,13 +64,13 @@ if __name__ == "__main__":
 
     # 設定基本的日誌設定
     logging.basicConfig(
-        level=logging.DEBUG, handlers=[ColoredLogHandler(fmt=logging.BASIC_FORMAT)]
+        level=logging.INFO, handlers=[
+            ColoredLogHandler(fmt=logging.BASIC_FORMAT)]
     )
 
     # 取得日誌物件
-    logger = logging.getLogger()
-    logger.info("INFO MESSAGE")
-    logger.debug("DEBUG MESSAGE")
-    logger.warning("WARNING MESSAGE")
-    logger.error("ERROR MESSAGE")
-    logger.critical("CRITICAL MESSAGE")
+    logging.getLogger().info("INFO MESSAGE")
+    logging.getLogger().debug("DEBUG MESSAGE")
+    logging.getLogger().warning("WARNING MESSAGE")
+    logging.getLogger().error("ERROR MESSAGE")
+    logging.getLogger().critical("CRITICAL MESSAGE")
