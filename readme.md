@@ -1,6 +1,8 @@
+# 公告: 2024/05/14 🚧 Twitter 前端 webpushAPI失效 重構中 目前程式不起作用 ❎
 ## IVE-Discord-Bot
 
 A fully custom Discord Bot for IVE
+
 
 Support **Python 3.8 - 3.12**
 
