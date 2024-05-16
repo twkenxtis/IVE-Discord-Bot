@@ -186,12 +186,11 @@ class TwitterHandler(object):
             twitter_description_imgs_count,
             twitter_imgs_description,
             author_avatar,
-            twitter_rss_dict,
         )
         return twitter_rss_dict
 
     @classmethod
-    def create_tuple_and_update_dict(cls, rss_entry, filter_entry, pub_date_tw, twitter_description_imgs_count, twitter_imgs_description, author_avatar, twitter_rss_dict):
+    def create_tuple_and_update_dict(cls, rss_entry, filter_entry, pub_date_tw, twitter_description_imgs_count, twitter_imgs_description, author_avatar):
 
         post_title = filter_entry
 
