@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import logging
@@ -21,7 +22,7 @@ class TwitterHandler(object):
         self.http_response_content: str | None = None
         self.parsed_rssfeed = None
 
-    def validate_url_and_get_feed(self):
+    async def validate_url_and_get_feed(self):
         result = urlparse(self.url)
         if not all([result.scheme, result.netloc]):
             print(
@@ -29,20 +30,20 @@ class TwitterHandler(object):
             logging.warning(" URL 格式錯誤，請檢查後重試")
             raise ValueError
 
-        self.http_response_content = self.start_request(self.url)
+        self.http_response_content = await self.start_request(self.url)
 
-    def start_request(self, rss_url: str) -> str:
-        http_request = http_utility.HttpRequester(str(rss_url))
-        http_request.start_requests()
-        return str(http_request.get_response_content())
+    async def start_request(self, rss_url: str) -> str:
+        http_requester = http_utility.HttpRequester(rss_url)
+        await http_requester.start_requests()
+        response_content = await http_requester.get_response_content()
+        return response_content
 
-    def response_content(self):
-
+    async def response_content(self) -> tuple[str, dict]:
+        loop = asyncio.get_running_loop()
         if self.http_response_content is not None:
-            self.parsed_rssfeed = feedparser.parse(self.http_response_content)
-            self.feedparser(self.parsed_rssfeed)
-
-            return str(self.http_response_content), dict(self.parsed_rssfeed)
+            parsed_rssfeed = await loop.run_in_executor(None, feedparser.parse, self.http_response_content)
+            self.feedparser(parsed_rssfeed)
+            return str(self.http_response_content), dict(parsed_rssfeed)
 
     def feedparser(self, parsed_rssfeed):
 
@@ -211,7 +212,7 @@ class TwitterHandler(object):
         # 把Twitter貼文網址MD5當Key
         MD5 = hashlib.md5(twitter_post_link.encode("utf-8")).hexdigest()
 
-        # 把字典丟到 update_twitter_dict
+        # 把字典丢到 update_twitter_dict
         cls.Twitter_Dict_Manager.update_twitter_dict(
             {str(MD5): tuple(tuple_of_dict)})
 
@@ -255,18 +256,18 @@ class start_API_Twitter:
         self.url = url
         self.rss_tester = TwitterHandler(url)
 
-    def try_url(self):
+    async def try_url(self):
         try:
-            self.rss_tester.validate_url_and_get_feed()
+            await self.rss_tester.validate_url_and_get_feed()
         except ValueError as e:
             return False
         return True
 
-    def get_response(self):
-        if not self.try_url():
+    async def get_response(self):
+        if not await self.try_url():
             return
         try:
-            return self.rss_tester.response_content()
+            return await self.rss_tester.response_content()
         except AttributeError as e:
             logging.error(f"ERROR: {e}")
             raise AttributeError("Error processing RSS feed")
@@ -277,5 +278,6 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, handlers=[
                         ColoredLogHandler(fmt=logging.BASIC_FORMAT)])
 
-    url = ""
-    start_API_Twitter(url).get_response()
+    url = "http://192.168.0.225:8153/air_wyive.xml"
+    api_twitter = start_API_Twitter(url)
+    response = asyncio.run(api_twitter.get_response())
