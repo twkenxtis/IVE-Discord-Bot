@@ -1,13 +1,11 @@
 import logging
 
-from timezone import get_formatted_current_time
-from custom_log import ColoredLogHandler
-
 import aiohttp
 from aiohttp import ClientTimeout
 from fake_useragent import UserAgent
+from loguru import logger
 
-logging.basicConfig(level=logging.INFO, handlers=[ColoredLogHandler()])
+logging.basicConfig(level=logging.INFO)
 
 
 class HttpRequester:
@@ -27,7 +25,7 @@ class HttpRequester:
                 self.status_message = f"HTTP Status Code: {response.status}"
                 return response.status
         except aiohttp.ClientError as e:
-            logging.error(f" {await get_formatted_current_time()} - ClientError: {e} - 網路請求錯誤")
+            logger.error(f"ClientError: {e} - 網路請求錯誤")
             return "失敗，網路請求錯誤"
 
     async def get_response_content(self):
@@ -36,9 +34,9 @@ class HttpRequester:
     async def start_requests(self):
         status_code_or_message = await self.send_request()
         if status_code_or_message == 200:
-            logging.info(f" {await get_formatted_current_time()} - {self.url} code: {status_code_or_message}")
+            logger.info(f"{self.url} ─ {status_code_or_message}")
         else:
-            logging.warning(f" {await get_formatted_current_time()} - {self.url} - {status_code_or_message}")
+            logger.warning(f"{self.url} ─ {status_code_or_message}")
 
     async def close(self):
         await self.session.close()
