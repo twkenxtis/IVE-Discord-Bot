@@ -4,7 +4,7 @@
 A fully custom Discord Bot for IVE
 
 
-Support **Python 3.8 - 3.12**
+Support **Python 3.9 - 3.12**
 
 # How to setup :
 venv (optional)
