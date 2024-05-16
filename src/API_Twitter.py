@@ -1,3 +1,4 @@
+from typing import Tuple, List
 import asyncio
 import aiofiles
 import hashlib
@@ -7,11 +8,13 @@ import os
 import re
 import pickle
 import xml.etree.ElementTree as ET
-from urllib.parse import urlparse
+from functools import lru_cache
 from typing import Tuple, Dict, Any
+from urllib.parse import urlparse
 
 import http_utility
 from custom_log import logger_API_Twitter
+from ive_hash_tag import match_tags
 from timezone import TimeZoneConverter, get_formatted_current_time
 
 import feedparser
@@ -38,8 +41,7 @@ class TwitterHandler(object):
     async def validate_url_and_get_feed(self):
         result = urlparse(self.url)
         if not all([result.scheme, result.netloc]):
-            logger.warning(
-                f" {await get_formatted_current_time()} - URL 格式錯誤，請檢查後重試")
+            logger.warning(" URL 格式錯誤，請檢查後重試")
             raise ValueError
 
         self.http_response_content = await self.start_request(self.url)
@@ -67,12 +69,18 @@ class TwitterHandler(object):
 
     async def feedparser(self, parsed_rssfeed):
         if parsed_rssfeed is not None:
-            # 處理 RSS Feed 的條目
             for rss_entry in parsed_rssfeed.entries:
-                pub_date_tw = await TimeZoneConverter().convert_time(
-                    str(rss_entry.published))
-                description = rss_entry.description
-                yield rss_entry, pub_date_tw, description
+                hashtags = re.findall(
+                    r'#(IVE|ive)', rss_entry.title, re.IGNORECASE)
+                # 確保只有在找到 hashtags 時才繼續執行
+                if hashtags:
+                    pub_date_tw = await TimeZoneConverter().convert_time(
+                        str(rss_entry.published))
+                    description = rss_entry.description
+
+                    # 當找到 hashtags 時，調用 process_hashtags 函數
+                    # await self.process_hashtags(rss_entry.title)
+                    yield rss_entry, pub_date_tw, description
 
     async def process_entries(self):
         if self.parsed_rssfeed is not None:
@@ -84,11 +92,11 @@ class TwitterHandler(object):
         author_avatar = self.match_author_avatar(self.http_response_content)
 
         try:
-            twitter_imgs_description, twitter_description_imgs_count = TwitterHandler._process_tweet_images(
+            twitter_imgs_description, twitter_description_imgs_count = await TwitterHandler._process_tweet_images(
                 description)
-        except TwitterHandler.TwitterException as e:
+        except BaseException as e:
             logger.error(f"Error processing tweet images: {e}")
-            raise TwitterHandler.Twitter(
+            raise BaseException(
                 "TwitterHandler._process_tweet_images 無法處理 entry 中的圖片影片數據")
 
         await TwitterHandler.create_twitter_rss_dict(
@@ -101,15 +109,29 @@ class TwitterHandler(object):
         )
 
     @staticmethod
-    def _process_tweet_images(description: str) -> Tuple[str, int]:
-        # 使用預先編譯的正則表達式模式來查找所有圖片和影片的URL
+    async def _process_imgs_videos(twitter_imgs_description: list):
+        twitter_imgs = []
+        for url in twitter_imgs_description:
+            if url.endswith("?format=jpg"):
+                # 在URL末尾添加字符串 &name=orig 以強制獲取原始圖片大小
+                twitter_imgs.append(url + "&name=orig")
+            else:
+                twitter_imgs.append(url)
+        return twitter_imgs
+
+    @staticmethod
+    @lru_cache(maxsize=None)
+    async def _process_tweet_images(description: str) -> Tuple[str, int]:
+        # 使用預先編譯的正則表達式模式來查找所有圖片和視頻的URL
         replace_qp_url = []
         replace_qp_url.extend(
             TwitterHandler.PATTERN_twitter.findall(description))
         replace_qp_url.extend(TwitterHandler.PATTERN_jpg.findall(description))
         replace_qp_url.extend(TwitterHandler.PATTERN_mp4.findall(description))
 
-        twitter_imgs_description = replace_qp_url
+        # 處理圖片和視頻的URL列表
+        twitter_imgs_description = await TwitterHandler._process_imgs_videos(
+            replace_qp_url)
 
         # 計算圖片和影片的數量
         twitter_description_imgs_count = len(twitter_imgs_description)
@@ -117,26 +139,14 @@ class TwitterHandler(object):
         # 將圖片URL列表轉換為字符串，再以空格分割每個圖片URL，以便保存到字典中
         twitter_imgs_description_str = " ".join(twitter_imgs_description)
 
-        # 如果沒有圖片URL，將其設置為 空字串
+        # 如果沒有圖片URL，將其設置為空字符串
         twitter_imgs_description_str = twitter_imgs_description_str if twitter_imgs_description_str else "　"
 
         # 返回處理後的所有圖片網址和總圖片數量
         return str(twitter_imgs_description_str), int(twitter_description_imgs_count)
 
     @staticmethod
-    def _process_imgs_videos(url):
-        twitter_imgs_description = []
-        # 如果URL以 ?format=jpg 結尾
-        if url.endswith("?format=jpg"):
-            # 在URL末尾添加字符串 &name=orig 強制抓取原始圖片大小
-            twitter_imgs_description.append(url + "&name=orig")
-        else:
-            # 如果URL不以 ?format=jpg 結尾
-            # 則直接將原始URL加入清單中 EX: (Twitter影片/縮圖等等...)
-            twitter_imgs_description.append(url)
-        return twitter_imgs_description
-
-    @staticmethod
+    @lru_cache(maxsize=None)
     def filter_entry_img(description: str) -> str:
         if description:
             # 從RSS描述中找出所有的圖片連結
@@ -152,9 +162,11 @@ class TwitterHandler(object):
                 description = "　"
         else:
             description = "　"
+
         return str(description)
 
     @staticmethod
+    @lru_cache(maxsize=None)
     def match_author_avatar(http_response_content):
         try:
             # 嘗試解析 XML 內容
@@ -174,6 +186,26 @@ class TwitterHandler(object):
 
         return ""  # 如果沒有匹配的URL，返回 空字串
 
+    async def process_hashtags(rss_title: str) -> str:
+        # 異步處理每個 hashtag
+        for _ in rss_title:
+            hash_tags = {word for word in rss_title.split()
+                         if word.startswith("#")}
+
+            matched_values = await match_tags(hash_tags)
+            if len(matched_values) > 1:
+                dc_channel = "GROUPS"
+                return dc_channel
+            elif matched_values is None:
+                logger.debug(matched_values, hash_tags)
+                raise ValueError("Discord channel find fail")
+            else:
+                matched_values = str(matched_values)
+                matched_values = matched_values.replace("''", "").replace(
+                    "'", "").replace("{", "").replace("}", "").replace(", ", ",")
+                dc_channel = matched_values
+                return dc_channel
+
     @classmethod
     async def create_twitter_rss_dict(cls, rss_entry, filter_entry, pub_date_tw, twitter_description_imgs_count, twitter_imgs_description, author_avatar):
         # 建立和更新 Twitter RSS 字典
@@ -192,9 +224,12 @@ class TwitterHandler(object):
 
     @classmethod
     async def update_twitter_dict(cls, rss_entry, filter_entry, pub_date_tw, twitter_description_imgs_count, twitter_imgs_description, author_avatar):
+
         post_title = filter_entry
 
-        # 存进字典的 Tuple
+        dc_channel = await cls.process_hashtags(str(rss_entry.title))
+
+       # 存進字典的 Tuple
         tuple_of_dict = (
             str(rss_entry.author),
             str(rss_entry.link),
@@ -204,14 +239,15 @@ class TwitterHandler(object):
             int(twitter_description_imgs_count),
             str(twitter_imgs_description),
             str(author_avatar),
+            str(dc_channel),
         )
 
         twitter_post_link = rss_entry.link
 
-        # 把Twitter贴文网址MD5当Key
+        # 把Twitter貼文網址MD5當Key
         MD5 = hashlib.md5(twitter_post_link.encode("utf-8")).hexdigest()
 
-        # 把字典丢到 update_twitter_dict
+        # 把字典丟到 update_twitter_dict
         await cls.Twitter_Dict_Manager.update_twitter_dict(
             {str(MD5): tuple(tuple_of_dict)})
 
@@ -292,6 +328,5 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    url = "http://192.168.0.225:8153/omenbibi"
-    api_twitter = start_API_Twitter(url)
-    response = asyncio.run(api_twitter.get_response())
+    url = "http://192.168.0.225:8153/air_wyive.xml"
+    asyncio.run(start_API_Twitter(url).get_response())
