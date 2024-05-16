@@ -1,239 +1,297 @@
+import asyncio
+import aiofiles
 import hashlib
+import json
 import logging
 import os
+import re
 import pickle
+import xml.etree.ElementTree as ET
+from urllib.parse import urlparse
+from typing import Tuple, Dict, Any
 
-from custom_log import ColoredLogHandler
-from twitter.API_match_Twitter_account import (
-    TwitterAccountProcessor,
-    Error_Log_Handler,
-)
-from twitter.Twitter_rss_process import *
+import http_utility
+from custom_log import logger_API_Twitter
+from timezone import TimeZoneConverter, get_formatted_current_time
 
-# 是否開啟轉推阻擋功能 Default: False
-re_Tweet_switch = True
+import feedparser
+import orjson
+from loguru import logger
 
 
-class API_Twitter:
+class TwitterHandler(object):
 
-    def __init__(self):
+    PATTERN_twitter = re.compile(r'https://pbs.twimg.com/[^"\']+?\.(?:jpg)')
+    PATTERN_jpg = re.compile(
+        r'https://pbs.twimg.com/media/[^"\']+?\?format=jpg')
+    PATTERN_mp4 = re.compile(r'https://video.twimg.com/[^"\']+?\.(?:mp4)')
+    DESCRIPTION_PATTERN_TAG = re.compile(
+        r'((?:.|\n)*?)(?:<img src="|<video controls="|<video src=")')
+    DESCRIPTION_PATTERN_AUTHOR = re.compile(
+        r"https://pbs.twimg.com/profile_images/.+\.jpg$")
 
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(current_dir)
+    def __init__(self, url: str) -> None:
+        self.url = url  # 初始化時傳入的 URL
+        self.http_response_content: str | None = None  # 儲存 HTTP 回應內容
+        self.parsed_rssfeed = None  # 儲存解析後的 RSS Feed
 
-        self.Twitter_cache_list = []
-        self.Twitter_cache_dict_pkl = os.path.join(
-            parent_dir, "assets", "Twitter_cache_dict.pkl"
-        )
-        self.Twitter_dict_json = os.path.join(
-            parent_dir, "assets", "Twitter_dict.json"
-        )
+    async def validate_url_and_get_feed(self):
+        result = urlparse(self.url)
+        if not all([result.scheme, result.netloc]):
+            logger.warning(
+                f" {await get_formatted_current_time()} - URL 格式錯誤，請檢查後重試")
+            raise ValueError
 
-        logging.basicConfig(
-            level=logging.INFO,
-            handlers=[
-                ColoredLogHandler(
-                    fmt=logging.BASIC_FORMAT)
-            ]
-        )
+        self.http_response_content = await self.start_request(self.url)
 
-    def match_twitter_account(self, input_notify: str):
+    async def start_request(self, rss_url: str) -> str:
+        # 發送 HTTP 請求並取得回應內容
+        http_requester = http_utility.HttpRequester(rss_url)
+        await http_requester.start_requests()
+        response_content = await http_requester.get_response_content()
+        await http_requester.close()
+        return response_content
 
-        re_Tweet_check = None
+    async def response_content(self) -> Tuple[str, Dict]:
+        # 取得並處理 RSS Feed 內容
+        if self.http_response_content is not None:
+            parsed_rssfeed = await self.parse_feed(self.http_response_content)
+            async for rss_entry, pub_date_tw, description in self.feedparser(parsed_rssfeed):
+                await self.process_entry(rss_entry, pub_date_tw, description)
+            return str(self.http_response_content), dict(parsed_rssfeed)
 
-        re_Tweet_check = TwitterEntry_re_Tweet.entry_url_process(
-            input_notify
-        )  # 得到匹配到的轉推 str=來源帳號 或 None=非轉推
+    async def parse_feed(self, http_response_content: str) -> feedparser.FeedParserDict:
+        # 解析 RSS Feed 內容
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, feedparser.parse, http_response_content)
 
-        # match is Twitter account or not
-        match_output_tuple = TwitterAccountProcessor(
-            str(input_notify)
-        ).process_twitter_account()
-        """
-        match_output_tuple = (
-            True, '901Percent_', 'https://twitter.com/901Percent_/status/1788413030365282774', '1788413030365282774'
-        )
-        
-        tuple(binary_search_result -> True, return value || twitter_link(Hardcode), twitter_post_id)
-        """
+    async def feedparser(self, parsed_rssfeed):
+        if parsed_rssfeed is not None:
+            # 處理 RSS Feed 的條目
+            for rss_entry in parsed_rssfeed.entries:
+                pub_date_tw = await TimeZoneConverter().convert_time(
+                    str(rss_entry.published))
+                description = rss_entry.description
+                yield rss_entry, pub_date_tw, description
 
-        print('\033[95mthis is match output and re_Tweet_cheek:\033[0m')
-        print(type(match_output_tuple), type(re_Tweet_check))
-        print(match_output_tuple, re_Tweet_check)
+    async def process_entries(self):
+        if self.parsed_rssfeed is not None:
+            async for rss_entry, pub_date_tw, description in self.feedparser(self.parsed_rssfeed):
+                await self.process_entry(rss_entry, pub_date_tw, description)
 
-        if match_output_tuple is None:
-            re_Tweet_check = None
-            match_output_tuple = None
-            pass
-        else:
-            print('\033[92mAPI_Twitter 開始運作!\033[0m')
-            return tuple(match_output_tuple), re_Tweet_check
+    async def process_entry(self, rss_entry, pub_date_tw, description):
+        filter_entry = self.filter_entry_img(description)
+        author_avatar = self.match_author_avatar(self.http_response_content)
 
-    def process_twitter_account(self, input_notify):
-
-        result_tuple = self.match_twitter_account(input_notify)
-
-        if result_tuple is None:
-            re_Tweet_check = None
-            match_output_tuple = None
-            Error_Log_Handler.error_log()
-        else:
-            match_output_tuple, re_Tweet_check = self.match_twitter_account(
-                input_notify)
-
-            # 轉推判斷
-            if re_Tweet_check == match_output_tuple[1] and re_Tweet_switch == True:
-                print(
-                    "\033[91mWarning: \033[33m\033[38;2;255;255;179m轉推阻擋已開啟，本次請求 \033[91m已阻擋 \033[33m"
-                    "\033[38;2;255;255;179m若要關閉\033[38;2;255;255;179m此功能在\033[0m"
-                    "\033[36m API_Twitter.py\033[91m \033[38;2;255;255;179m"
-                    "\033[0m將 \033[36mre_Tweet_switch\033[0m 變數設為\033[33m \033[36mFalse\033[0m"
-                )
-            else:
-                # match_output_tuple[0] is binary search bool
-                if bool(match_output_tuple[0]) is False:
-                    Error_Log_Handler.error_log()
-                elif not match_output_tuple is False:
-                    self.process_valid_tweet(match_output_tuple)
-
-    def process_valid_tweet(self, match_output_tuple):
-
-        # 網址哈希一下再存進去
-        MD5 = hashlib.md5(
-            str(match_output_tuple[2]).encode("utf-8")).hexdigest()
-
-        # 把 match Tag 轉成 str 後去除全部 ['()'] 字元
-        Twitter_id = (
-            str(match_output_tuple[1:-2])
-            .replace("(", "")
-            .replace(")", "")
-            .replace("[", "")
-            .replace("]", "")
-            .replace("'", "")
-            .replace(",", "")
-        )
-
-        # list(Twitter_cache_list)  ['qcpk0203','c682e42712551f88dfcefe076e2aeb93']
-        self.Twitter_cache_list.append(Twitter_id)
-        self.Twitter_cache_list.append(MD5)
-
-        print('帳號:', Twitter_id)
-
-        is_in_Dict = Key_Exists_in_Dict().dict_key_found(MD5)
-
-        if int(is_in_Dict) == 1:
-            logging.info("此通知已經存在資料庫中，不再新增")
-        elif int(is_in_Dict) == 0:
-            self.__save_to_pkl_()  # 以List存入['Twitter_id, MD5']
-
-            Twitter().start_request(Twitter_id)  # 呼叫HTTP RSS請求和存入字典的操作
-            TwitterMatcher().start_match()  # 查找HashTag標籤並匹配IVE成員是誰或不只匹配到一人
-
-    # 私有方法
-    def __save_to_pkl_(self):
-
-        # 開始存入 value 到 ../assets/Twitter_cache_dict.pkl
         try:
-            with open(self.Twitter_cache_dict_pkl, "rb") as file:
-                existing_data = pickle.load(file)
-        except FileNotFoundError:
-            with open(self.Twitter_cache_dict_pkl, "wb") as pkl:
-                pickle.dump(list(self.Twitter_cache_list), pkl)
-                existing_data = []
-            logging.error(
-                "  /assets/Twitter_cache_dict.pkl 遺失! 已經初始化，資料可能會產生異常"
-            )
+            twitter_imgs_description, twitter_description_imgs_count = TwitterHandler._process_tweet_images(
+                description)
+        except TwitterHandler.TwitterException as e:
+            logger.error(f"Error processing tweet images: {e}")
+            raise TwitterHandler.Twitter(
+                "TwitterHandler._process_tweet_images 無法處理 entry 中的圖片影片數據")
 
-        # 將新的數據追加到現有數據中
-        existing_data.append(self.Twitter_cache_list)
-
-        print('\033[9;33;40mAPI_Twitter_PKL 路徑:\033[0m',
-              self.Twitter_cache_dict_pkl)
-
-        # [['qcpk0203', 'c682e42712551f88dfcefe076e2aeb93']]
-        # 將更新後的數據寫入文件
-        with open(self.Twitter_cache_dict_pkl, "wb") as file:
-            pickle.dump(existing_data, file)
-
-
-class TwitterEntry_re_Tweet:
+        await TwitterHandler.create_twitter_rss_dict(
+            rss_entry,
+            filter_entry,
+            pub_date_tw,
+            int(twitter_description_imgs_count),
+            twitter_imgs_description,
+            author_avatar
+        )
 
     @staticmethod
-    def entry_url_process(input_data):
-        # 匹配 Twitter 轉推條目的 URL
-        tw_regex = re.findall(
-            r"https://twitter.com/.*?tweet\b", input_data, re.DOTALL)
-        # 匹配轉推條目的 URL
-        tw_regex_url = re.findall(
-            r'https://twitter.com/(?:#1tweet|")', input_data)
+    def _process_tweet_images(description: str) -> Tuple[str, int]:
+        # 使用預先編譯的正則表達式模式來查找所有圖片和影片的URL
+        replace_qp_url = []
+        replace_qp_url.extend(
+            TwitterHandler.PATTERN_twitter.findall(description))
+        replace_qp_url.extend(TwitterHandler.PATTERN_jpg.findall(description))
+        replace_qp_url.extend(TwitterHandler.PATTERN_mp4.findall(description))
 
-        match_accounts = None
-        try:
-            for first_filter in tw_regex:
+        twitter_imgs_description = replace_qp_url
 
-                # 如果匹配到的第一個 URL 不等於轉推條目的 URL
-                if first_filter != tw_regex_url[0]:
+        # 計算圖片和影片的數量
+        twitter_description_imgs_count = len(twitter_imgs_description)
 
-                    # 將轉推條目的 URL 中的換行符替換為空白後進行過濾
-                    filtered_entry = [
-                        re.sub(
-                            r"(https?://[A-Za-z0-9./?=_:\-~]+)(?:[A-Za-z0-9./?=_:\-~]+)?$",
-                            "",
-                            first_filter.replace("\n", ""),
-                        )
-                    ]
+        # 將圖片URL列表轉換為字符串，再以空格分割每個圖片URL，以便保存到字典中
+        twitter_imgs_description_str = " ".join(twitter_imgs_description)
 
-                    # 在過濾後的條目中查找匹配的 Twitter 帳號
-                    matches_data = [
-                        re.findall(r"(?i)@([A-Za-z0-9_]{1,})", first_filter)
-                        for _ in filtered_entry
-                    ]
+        # 如果沒有圖片URL，將其設置為 空字串
+        twitter_imgs_description_str = twitter_imgs_description_str if twitter_imgs_description_str else "　"
 
-                    # 將匹配到的 Twitter 帳號組合為一個字符串，如果未匹配到則返回 None
-                    match_accounts = (
-                        " ".join([_[0] for _ in matches_data]
-                                 ) if matches_data else None
-                    )
-        except IndexError:
-            match_accounts = None
-        # 返回匹配到的轉推來源帳號或者返回 None
-        return match_accounts
+        # 返回處理後的所有圖片網址和總圖片數量
+        return str(twitter_imgs_description_str), int(twitter_description_imgs_count)
 
-
-class Key_Exists_in_Dict:
-
-    def read_twitter_dict(self):
-
-        # 獲取當前檔案所在的目錄路徑
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-
-        file_path = os.path.join(
-            current_dir,  "..", "assets", "Twitter_dict.json")
-
-        file_path = os.path.abspath(file_path)
-
-        print("\n\033[9;33;40m路徑追蹤\033[0m" +
-              'class Key_Exists_in_Dict ', file_path)
-
-        if os.path.isfile(file_path):
-            with open(file_path, "r") as f:
-                twitter_dict = json.load(f)
-                return twitter_dict
+    @staticmethod
+    def _process_imgs_videos(url):
+        twitter_imgs_description = []
+        # 如果URL以 ?format=jpg 結尾
+        if url.endswith("?format=jpg"):
+            # 在URL末尾添加字符串 &name=orig 強制抓取原始圖片大小
+            twitter_imgs_description.append(url + "&name=orig")
         else:
-            with open(file_path, "w") as f:
-                json.dump({}, f)
-            with open(file_path, "r") as f:
-                twitter_dict = json.load(f)
-                logging.warning(
-                    " 檢測到Twitter_ditct.json異常，已初始化 /assets/Twitter_dict.json ，結果可能不準確!"
+            # 如果URL不以 ?format=jpg 結尾
+            # 則直接將原始URL加入清單中 EX: (Twitter影片/縮圖等等...)
+            twitter_imgs_description.append(url)
+        return twitter_imgs_description
+
+    @staticmethod
+    def filter_entry_img(description: str) -> str:
+        if description:
+            # 從RSS描述中找出所有的圖片連結
+            description_match = TwitterHandler.DESCRIPTION_PATTERN_TAG.search(
+                description)
+
+            if description_match:
+                # 從描述中過濾出完整的貼文標題 <br> 標籤，換成 "\n"
+                description = re.sub(
+                    r"<br\s*/?>", "\n", description_match.group(1)
                 )
-                return twitter_dict
-
-    def dict_key_found(self, MD5):
-        twitter_dict = self.read_twitter_dict()
-
-        if MD5 and twitter_dict is not None:
-            if MD5 in twitter_dict:
-                return int(1)  # FOUND
             else:
-                return int(0)  # NOT FOUND
+                description = "　"
+        else:
+            description = "　"
+        return str(description)
+
+    @staticmethod
+    def match_author_avatar(http_response_content):
+        try:
+            # 嘗試解析 XML 內容
+            xml_data = ET.fromstring(http_response_content)
+        except ET.ParseError as e:
+            # 如果內容不是有效的 XML，記錄錯誤並返回 None
+            logger.error(f"ParseError: {e}")
+            return None
+
+        # 尋找所有的 <url> 標籤
+        raw_xml_urls = xml_data.findall(".//url")
+
+        # 過濾並回傳符合條件的 URL
+        for url_element in raw_xml_urls:
+            if TwitterHandler.DESCRIPTION_PATTERN_AUTHOR.match(url_element.text):
+                return url_element.text
+
+        return ""  # 如果沒有匹配的URL，返回 空字串
+
+    @classmethod
+    async def create_twitter_rss_dict(cls, rss_entry, filter_entry, pub_date_tw, twitter_description_imgs_count, twitter_imgs_description, author_avatar):
+        # 建立和更新 Twitter RSS 字典
+        await cls.Twitter_Dict_Manager.load_from_json()
+        twitter_rss_dict = cls.Twitter_Dict_Manager()
+
+        await cls.update_twitter_dict(
+            rss_entry,
+            filter_entry,
+            pub_date_tw,
+            twitter_description_imgs_count,
+            twitter_imgs_description,
+            author_avatar,
+        )
+        return twitter_rss_dict
+
+    @classmethod
+    async def update_twitter_dict(cls, rss_entry, filter_entry, pub_date_tw, twitter_description_imgs_count, twitter_imgs_description, author_avatar):
+        post_title = filter_entry
+
+        # 存进字典的 Tuple
+        tuple_of_dict = (
+            str(rss_entry.author),
+            str(rss_entry.link),
+            str(post_title),
+            str(pub_date_tw),
+            f"{await get_formatted_current_time()}",
+            int(twitter_description_imgs_count),
+            str(twitter_imgs_description),
+            str(author_avatar),
+        )
+
+        twitter_post_link = rss_entry.link
+
+        # 把Twitter贴文网址MD5当Key
+        MD5 = hashlib.md5(twitter_post_link.encode("utf-8")).hexdigest()
+
+        # 把字典丢到 update_twitter_dict
+        await cls.Twitter_Dict_Manager.update_twitter_dict(
+            {str(MD5): tuple(tuple_of_dict)})
+
+    class Twitter_Dict_Manager:
+
+        @classmethod
+        async def load_from_json(cls) -> None:
+            json_file = os.path.abspath(os.path.join(
+                os.path.dirname(__file__),
+                "..", "assets", "Twitter_dict.json"))
+            if os.path.exists(json_file) and os.path.getsize(json_file) > 0:
+                async with aiofiles.open(json_file, "r") as j:
+                    file_content = await j.read()
+                    cls.twitter_dict = orjson.loads(
+                        file_content) if file_content else {}
+            else:
+                cls.twitter_dict = {}
+
+        @classmethod
+        async def save_to_json(cls) -> None:
+            json_file = os.path.abspath(os.path.join(
+                os.path.dirname(__file__),
+                "..", "assets", "Twitter_dict.json"))
+            existing_data = {}
+            if os.path.exists(json_file) and os.path.getsize(json_file) > 0:
+                async with aiofiles.open(json_file, "r") as file:
+                    existing_data = await file.read()
+
+            existing_data_dict = orjson.loads(
+                existing_data) if existing_data else {}
+
+            existing_data_dict.update(cls.twitter_dict)
+
+            json_data = json.dumps(existing_data_dict, indent=4)
+            async with aiofiles.open(json_file, "w") as j:
+                await j.write(json_data)
+
+            # 同步保存 pkl 文件
+            cls.save_to_pkl(existing_data_dict)
+
+        @classmethod
+        def save_to_pkl(cls, data: dict) -> None:
+            pkl_file = os.path.abspath(os.path.join(
+                os.path.dirname(__file__),
+                "..", "assets", "Twitter_dict.pkl"))
+            with open(pkl_file, "wb") as pkl:
+                pickle.dump(data, pkl)
+
+        @classmethod
+        async def update_twitter_dict(cls, new_data: Dict[str, Any]) -> None:
+            cls.twitter_dict.update(new_data)
+            await cls.save_to_json()
+
+
+class start_API_Twitter:
+    def __init__(self, url):
+        self.url = url
+        self.rss_object = TwitterHandler(url)
+
+    async def try_url(self):
+        try:
+            await self.rss_object.validate_url_and_get_feed()
+        except ValueError as e:
+            return False
+        return True
+
+    async def get_response(self) -> Tuple[str, Dict[str, Any]] | None:
+        if not await self.try_url():
+            return
+        try:
+            return await self.rss_object.response_content()
+        except AttributeError as e:
+            logger.error(f"ERROR: {e}")
+            raise AttributeError("Error processing RSS feed")
+
+
+if __name__ == "__main__":
+
+    logging.basicConfig(level=logging.INFO)
+
+    url = "http://192.168.0.225:8153/omenbibi"
+    api_twitter = start_API_Twitter(url)
+    response = asyncio.run(api_twitter.get_response())
