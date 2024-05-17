@@ -100,7 +100,7 @@ class TwitterHandler(object):
                 hashtags = self.PATTERN_HASHTAG.findall(rss_entry.title)
                 if hashtags:
 
-                    # 將發布時間轉換為台灣時區
+                    # 將發布時間轉換為臺灣時區
                     pub_date_tw = await TimeZoneConverter().convert_time(
                         rss_entry.published
                     )
@@ -155,7 +155,7 @@ class TwitterHandler(object):
         # 遍歷提供的 Twitter 圖片，來自 RSS 描述的 URL 列表
         for url in twitter_imgs_description:
             if url.endswith("?format=jpg"):
-                # 在URL末尾添加字符串 &name=orig 以強制獲取原始圖片大小
+                # 在URL末尾添加字符串 &name=orig 以強製獲取原始圖片大小
                 twitter_imgs.append(url + "&name=orig")
             else:
                 twitter_imgs.append(url)
@@ -422,5 +422,5 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    url = "http://127.0.0.1:8153/imhyeon29764440.xml"
+    url = ""
     asyncio.run(start_API_Twitter(url).get_response())
