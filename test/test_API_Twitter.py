@@ -1,6 +1,6 @@
+import asyncio
 import unittest
 from unittest.mock import MagicMock, patch
-import asyncio
 
 from API_Twitter import start_API_Twitter
 
