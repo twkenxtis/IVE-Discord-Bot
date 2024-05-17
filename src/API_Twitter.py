@@ -1,3 +1,6 @@
+# IVE-Discord-Bot is used under the MIT License
+# Copyright (c) 2024 twkenxtis (ytiq8nxnm@mozmail.com)
+# For more details, see the LICENSE file included with the distribution
 import aiofiles
 import asyncio
 import hashlib
@@ -17,9 +20,21 @@ from http_utility import HttpRequester
 from ive_hash_tag import match_tags
 from timezone import TimeZoneConverter, get_formatted_current_time
 
+# feedparser includes software developed by Kurt McKee (contactme@kurtmckee.org)
+# and Mark Pilgrim (Copyright 2002-2008).
+# For full license terms, see the LICENSE file included with this distribution.
 import feedparser
+# orjson is used under the MIT License
+# Copyright (c) 2024 ijl
+# For more details, see the LICENSE file included with the distribution
 import orjson
+# aiocache - BSD 3-Clause License
+# Copyright (c) 2016, Manuel Miranda de Cid
+# For more details, see the LICENSE file included with the distribution
 from aiocache import cached, Cache
+# orjson is used under the MIT License
+# Copyright (c) 2024 Delgan
+# For more details, see the LICENSE file included with the distribution
 from loguru import logger
 
 
