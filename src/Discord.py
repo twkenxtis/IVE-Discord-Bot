@@ -1,3 +1,6 @@
+# IVE-Discord-Bot is used under the MIT License
+# Copyright (c) 2024 twkenxtis (ytiq8nxnm@mozmail.com)
+# For more details, see the LICENSE file included with the distribution
 import asyncio
 import json
 import logging
