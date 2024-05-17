@@ -1,8 +1,20 @@
+# IVE-Discord-Bot is used under the MIT License
+# Copyright (c) 2024 twkenxtis (ytiq8nxnm@mozmail.com)
+# For more details, see the LICENSE file included with the distribution
 import logging
 
+# aiocache - BSD 3-Clause License
+# Copyright (c) 2016, Manuel Miranda de Cid
+# For more details, see the LICENSE file included with the distribution
 import aiohttp
 from aiohttp import ClientTimeout
+# fake-useragent - Apache License 2.0
+# Copyright (c) 2024, fake-useragent
+# For more details, see the LICENSE file included with the distribution
 from fake_useragent import UserAgent
+# orjson is used under the MIT License
+# Copyright (c) 2024 Delgan
+# For more details, see the LICENSE file included with the distribution
 from loguru import logger
 
 logging.basicConfig(level=logging.INFO)
