@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 import asyncio
 
-from new_rss import start_API_Twitter
+from API_Twitter import start_API_Twitter
 
 
 class TestStartAPITwitter(unittest.TestCase):
