@@ -9,10 +9,13 @@ import os
 import re
 import pickle
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from functools import lru_cache
-from typing import Tuple, Dict, Any, List, AsyncGenerator, Optional
+from typing import Tuple, Dict, Any, List, AsyncGenerator, Iterable, Optional, Union
 from xml.etree.ElementTree import Element
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 from custom_log import logger_API_Twitter
 from http_utility import HttpRequester
@@ -94,29 +97,28 @@ class TwitterHandler(object):
         self, parsed_rssfeed: dict
     ) -> AsyncGenerator[Tuple[Any, str, str], None]:
         if parsed_rssfeed is not None:
-            # 遍歷 feed 中的每個條目
-            for rss_entry in parsed_rssfeed.entries:
-                # 確保只有在找到 hashtags 時才繼續執行
-                hashtags = self.PATTERN_HASHTAG.findall(rss_entry.title)
-                if hashtags:
+            # 收集所有符合條目的 tasks
+            tasks = [
+                self._process_rss_entry(rss_entry)
+                for rss_entry in parsed_rssfeed.entries
+                if self.PATTERN_HASHTAG.findall(rss_entry.title)
+            ]
+            # 使用 asyncio.gather 並行處理
+            results = await asyncio.gather(*tasks)
 
-                    # 將發布時間轉換為臺灣時區
-                    pub_date_tw = await TimeZoneConverter().convert_time(
-                        rss_entry.published
-                    )
+            for result in results:
+                if result:
+                    yield result
 
-                    description = rss_entry.description
-
-                    yield rss_entry, pub_date_tw, description
-
-    async def process_entries(self) -> None:
-        if self.parsed_rssfeed is not None:
-            # 非同步遍歷 feedparser 方法產生的條目資訊
-            async for rss_entry, pub_date_tw, description in self.feedparser(
-                self.parsed_rssfeed
-            ):
-                # 處理每個條目
-                await self.process_entry(rss_entry, pub_date_tw, description)
+    async def _process_rss_entry(self, rss_entry) -> Union[Tuple[Any, str, str], None]:
+        try:
+            # 將發布時間轉換為台灣時區
+            pub_date_tw = await TimeZoneConverter().convert_time(rss_entry.published)
+            description = rss_entry.description
+            return rss_entry, pub_date_tw, description
+        except Exception as e:
+            logger.error(f"Error processing RSS entry: {e}")
+            return None
 
     async def process_entry(self, rss_entry, pub_date_tw, description) -> None:
 
@@ -155,7 +157,7 @@ class TwitterHandler(object):
         # 遍歷提供的 Twitter 圖片，來自 RSS 描述的 URL 列表
         for url in twitter_imgs_description:
             if url.endswith("?format=jpg"):
-                # 在URL末尾添加字符串 &name=orig 以強製獲取原始圖片大小
+                # 在URL末尾添加字符串 &name=orig 以強制獲取原始圖片大小
                 twitter_imgs.append(url + "&name=orig")
             else:
                 twitter_imgs.append(url)
@@ -304,9 +306,7 @@ class TwitterHandler(object):
     ) -> None:
 
         post_title = filter_entry
-
         twitter_post_link = rss_entry.link
-
         dc_channel = await cls.process_hashtags(str(rss_entry.title))
 
        # 存進字典的 Tuple
@@ -322,12 +322,22 @@ class TwitterHandler(object):
             str(dc_channel),
         )
 
-        # 把Twitter 貼文網址 MD5當字典的 Key
-        MD5 = hashlib.md5(twitter_post_link.encode("utf-8")).hexdigest()
+        async def time_offset():
+            # 把Twitter 貼文網址 MD5當字典的 Key
+            MD5 = hashlib.md5(twitter_post_link.encode("utf-8")).hexdigest()
 
-        # 把字典丟到 update_twitter_dict 方法
-        await cls.Twitter_Dict_Manager.update_twitter_dict(
-            {str(MD5): tuple(tuple_of_dict)})
+            match_set_md5 = set()
+
+            time_diffs = TimeDifferenceCalculator.calculate_in_parallel(
+                [pub_date_tw])
+            if time_diffs:
+                match_set_md5.add(MD5)
+                twitter_dict = {MD5: tuple_of_dict}
+
+                # 把字典丟到 update_twitter_dict 方法
+                await cls.Twitter_Dict_Manager.update_twitter_dict(twitter_dict
+                                                                   )
+        await asyncio.gather(time_offset())
 
     class Twitter_Dict_Manager:
 
@@ -395,6 +405,46 @@ class TwitterHandler(object):
             await cls.save_to_json()
 
 
+class TimeDifferenceCalculator:
+
+    TAIPEI_TZ = ZoneInfo("Asia/Taipei")
+
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def calculate_time_difference(target_time_str: str) -> float:
+        try:
+            target_time = datetime.strptime(
+                target_time_str, "%Y/%m/%d %H:%M:%S").replace(tzinfo=TimeDifferenceCalculator.TAIPEI_TZ)
+            current_time = datetime.now().astimezone(TimeDifferenceCalculator.TAIPEI_TZ)
+            time_difference_seconds = (
+                current_time - target_time).total_seconds()
+
+            if time_difference_seconds < 86400:
+                return time_difference_seconds
+            else:
+                return None
+        except Exception as e:
+            logger.error(f"Error calculating time difference: {e}")
+            return None
+
+    @staticmethod
+    def calculate_in_parallel(time_strings: Iterable[Union[str, Tuple[str]]], max_workers: int = 4) -> set:
+        results = set()
+        try:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [executor.submit(
+                    TimeDifferenceCalculator.calculate_time_difference, time_str) for time_str in time_strings]
+                for future, time_str in zip(as_completed(futures), time_strings):
+                    result = future.result()
+                    if result is not None:
+                        results.add(time_str) if isinstance(
+                            time_str, str) else results.add(time_str[0])
+            return results
+        except Exception as e:
+            logger.error(f"Error in parallel calculation: {e}")
+            return results
+
+
 class start_API_Twitter:
     def __init__(self, url):
         self.url = url
@@ -422,5 +472,5 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    url = ""
+    url = "http://192.168.0.225:8153/Midnight_YJ.xml"
     asyncio.run(start_API_Twitter(url).get_response())
