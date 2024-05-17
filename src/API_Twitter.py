@@ -1,7 +1,6 @@
 # IVE-Discord-Bot is used under the MIT License
 # Copyright (c) 2024 twkenxtis (ytiq8nxnm@mozmail.com)
 # For more details, see the LICENSE file included with the distribution
-import aiofiles
 import asyncio
 import hashlib
 import json
@@ -32,6 +31,10 @@ import orjson
 # Copyright (c) 2016, Manuel Miranda de Cid
 # For more details, see the LICENSE file included with the distribution
 from aiocache import cached, Cache
+# aiofiles - Apache License 2.0
+# Copyright (c) 2024, Tinche
+# For more details, see the LICENSE file included with the distribution
+import aiofiles
 # orjson is used under the MIT License
 # Copyright (c) 2024 Delgan
 # For more details, see the LICENSE file included with the distribution
