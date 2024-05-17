@@ -32,14 +32,20 @@ tag_dict = {
 }
 
 
+# 使用 lru_cache 裝飾器來優化性能
+# lru_cache 會儲存函數的調用結果，避免重複計算
 @lru_cache(maxsize=None)
 def ive_tag_dict():
     return tag_dict
 
 
+# 異步函數用於匹配輸入集合中的標籤
 async def match_tags(input_set_to_search: set) -> str:
+    # 初始化一個空集合來存儲匹配到的值
     matched_values = set()
+    # 遍歷輸入集合中的每個標籤
     for tag in input_set_to_search:
+        # 如果標籤在字典中，更新匹配到的值
         if tag in ive_tag_dict():
             matched_values.update(ive_tag_dict()[tag])
     return matched_values
