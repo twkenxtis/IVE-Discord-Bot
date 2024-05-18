@@ -68,7 +68,7 @@ class TwitterHandler(object):
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
         self.author_avatar = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -281,13 +281,13 @@ class TwitterHandler(object):
             matched_values = await match_tags(hash_tags)
 
             # 如果匹配到多個值，則將 Discord 頻道設為 "GROUPS"
-            if len(matched_values) > 1:
-                dc_channel = "GROUPS"
-                return dc_channel
             # 如果沒有匹配到任何值，記錄並拋出錯誤
-            elif matched_values is None:
+            if matched_values is None:
                 logger.debug(matched_values, hash_tags)
                 raise ValueError("Discord channel find fail")
+            elif len(matched_values) > 1:
+                dc_channel = "GROUPS"
+                return dc_channel
             # 如果匹配到單個值，則清理格式並返回
             else:
                 matched_values = str(matched_values)
@@ -458,7 +458,7 @@ class TwitterHandler(object):
 
 class TimeDifferenceCalculator:
 
-    # 類定義台北時區
+    # 類定義臺北時區
     TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
     # 使用靜態方法計算時間差，並使用 lru_cache 進行緩存以提高效率
