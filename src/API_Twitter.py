@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from functools import lru_cache
-from typing import Tuple, Dict, Any, List, AsyncGenerator, Iterable, Optional, Union
+from typing import Tuple, Any, Dict, List, AsyncGenerator, Iterable, Optional, Type, Union
 from xml.etree.ElementTree import Element
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
@@ -46,6 +46,8 @@ from loguru import logger
 
 class TwitterHandler(object):
 
+    Dev_24hr_switch = False  # 開啟/關閉 24 小時開發模式
+
     PATTERN_twitter = re.compile(r'https://pbs.twimg.com/[^"\']+?\.(?:jpg)')
     PATTERN_jpg = re.compile(
         r'https://pbs.twimg.com/media/[^"\']+?\?format=jpg')
@@ -61,79 +63,109 @@ class TwitterHandler(object):
     def __init__(self, url: str) -> None:
         self.url = url  # 初始化時傳入的 URL
         self.http_response_content: str | None = None  # 儲存 HTTP 回應內容
-        self.parsed_rssfeed = None  # 儲存解析後的 RSS Feed
+        self.parsed_rssfeed: feedparser.FeedParserDict | None = None  # 儲存解析後的 RSS Feed
+        self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
+        self.rss_entry = None  # 儲存 RSS 條目
+        self.description = None  # 儲存 RSS 條目的描述內容
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
+        # self.twitter_imgs_description = None  # 儲存所有 Twitter 圖片 URLS
+        # self.twitter_description_imgs_count: int = None  # 計算有多少張 Twitter 圖片
 
-    async def validate_url_and_get_feed(self) -> None:
+        self.author_avatar = None  # 儲存作者頭像
+
+    async def validate_url_and_get_feed(self) -> str:
         result = urlparse(self.url)
         if not all([result.scheme, result.netloc]):
-            raise ValueError
+            raise ValueError  # 捕捉在 start_API_Twitter.try_url
 
-        self.http_response_content = await self.start_request(self.url)
+        await self.start_request()
 
-    async def start_request(self, rss_url: str) -> str:
+    async def start_request(self) -> str:
+        http_requester = HttpRequester(self.url)
         # 發送 HTTP 請求並取得回應內容
-        http_requester = HttpRequester(rss_url)
         await http_requester.start_requests()
-        response_content = await http_requester.get_response_content()
+        # 取得 HTTP 回應內容
+        self.http_response_content = await http_requester.get_response_content()
+        # 關閉 HTTP 請求器
         await http_requester.close()
-        return response_content
+        return self.http_response_content
 
-    async def response_content(self) -> Tuple[str, Dict[str, Any]]:
+    async def response_content(self) -> feedparser.FeedParserDict:
         # 取得並處理 RSS Feed 內容
         if self.http_response_content is not None:
-            parsed_rssfeed = await self.parse_feed(self.http_response_content)
-            async for rss_entry, pub_date_tw, description in self.feedparser(parsed_rssfeed):
-                await self.process_entry(rss_entry, pub_date_tw, description)
-            return str(self.http_response_content), dict(parsed_rssfeed)
+            self.parsed_rssfeed = await self.parse_feed()
+            async for self.parsed_rssfeed, self.pub_date_tw, self.description in self.main_feedparser(self.parsed_rssfeed):
+                await self.process_entry(self.parsed_rssfeed)
+            """
+            print(self.description)
+            print(len(self.description))
+            print(id(self.description))
+            print(type(self.description))
+            """
+            return self.parsed_rssfeed
 
-    async def parse_feed(self, http_response_content: str) -> feedparser.FeedParserDict:
-        # 解析 RSS Feed 內容
+    async def parse_feed(self) -> feedparser.FeedParserDict:
         # 使用 asyncio 獲取當前運行的 loop
-        loop = asyncio.get_running_loop()
         # 在執行器中非同步執行 feedparser.parse 方法
-        return await loop.run_in_executor(None, feedparser.parse, http_response_content)
+        return await asyncio.get_running_loop().run_in_executor(
+            None, feedparser.parse, self.http_response_content
+        )
 
-    async def feedparser(
-        self, parsed_rssfeed: dict
+    async def main_feedparser(
+        self, tasks: List[asyncio.Task] = [], results: List[Tuple[Any, str, str]] = []
     ) -> AsyncGenerator[Tuple[Any, str, str], None]:
-        if parsed_rssfeed is not None:
+        if self.parsed_rssfeed is not None:
             # 收集所有符合條目的 tasks
             tasks = [
-                self._process_rss_entry(rss_entry)
-                for rss_entry in parsed_rssfeed.entries
-                if self.PATTERN_HASHTAG.findall(rss_entry.title)
+                self._process_rss_entry(self.rss_entry)
+                for self.rss_entry in self.parsed_rssfeed.entries
+                if self.PATTERN_HASHTAG.findall(self.rss_entry.title)
             ]
-            # 使用 asyncio.gather 並行處理
-            results = await asyncio.gather(*tasks)
+            try:
+                results = None
+                # 使用 asyncio.gather 並行處理
+                results = await asyncio.gather(*tasks)
+            except Exception as e:
+                logger_API_Twitter.error(e)
+                raise
 
-            for result in results:
-                if result:
-                    yield result
+            for parallelization in results:
+                if parallelization:
+                    yield parallelization
+                else:
+                    raise ValueError(
+                        f"Error {parallelization} yield cant't processing RSS entry")
 
-    async def _process_rss_entry(self, rss_entry) -> Union[Tuple[Any, str, str], None]:
+    async def _process_rss_entry(self, rss_entry: Element) -> Union[Tuple[feedparser.FeedParserDict, str, str]:, None]:
+
         try:
             # 將發布時間轉換為台灣時區
-            pub_date_tw = await TimeZoneConverter().convert_time(rss_entry.published)
-            description = rss_entry.description
-            return rss_entry, pub_date_tw, description
-        except Exception as e:
-            logger.error(f"Error processing RSS entry: {e}")
-            return None
+            self.pub_date_tw = await TimeZoneConverter().convert_time(rss_entry.published)
+            self.description = rss_entry.description
 
-    async def process_entry(self, rss_entry, pub_date_tw, description) -> None:
+            return rss_entry, self.pub_date_tw, self.description
+        except Exception as e:
+            logger.error(f"Error processing RSS entry at description: {e}")
+            return None, None, None
+
+    async def process_entry(self, rss_entry: Element) -> None:
 
         # 從 rss.entries 的描述中提取 Tweet post 的標題
         # 過濾條目中的圖片
-        filter_entry = self.filter_entry_img(description)
+        self.filter_entry = self.filter_entry_img(self.description)
 
-        # 匹配作者頭像
-        author_avatar = self.match_author_avatar(self.http_response_content)
+        try:
+            if self.filter_entry is not None:
+                pass
+        except ValueError:
+            logger.error(
+                f"Post title:{self.filter_entry} author_avatar:{self.author_avatar} 其中一項為 None")
+            raise ValueError
 
         try:
             # 處理 Twitter 圖片描述
-
             twitter_imgs_description, twitter_description_imgs_count = (
-                await TwitterHandler._process_tweet_images(description)
+                await TwitterHandler._process_tweet_images(self.description)
             )
         except BaseException as e:
             logger.error(f"Error processing tweet images: {e}")
@@ -141,27 +173,30 @@ class TwitterHandler(object):
                 "TwitterHandler._process_tweet_images 無法處理 entry 中的圖片影片數據"
             )
 
+        # 匹配作者頭像
+        self.author_avatar = self.match_author_avatar(
+            self.http_response_content)
         # 建立 Twitter RSS 字典
         await TwitterHandler.create_twitter_rss_dict(
             rss_entry,
-            filter_entry,
-            pub_date_tw,
+            self.filter_entry,
+            self.pub_date_tw,
             int(twitter_description_imgs_count),
             twitter_imgs_description,
-            author_avatar
+            self.author_avatar
         )
 
     @staticmethod
-    async def _process_imgs_videos(twitter_imgs_description: List[str]) -> List[str]:
-        twitter_imgs = []
-        # 遍歷提供的 Twitter 圖片，來自 RSS 描述的 URL 列表
-        for url in twitter_imgs_description:
+    async def _process_orig_imgs(twitter_imgs_description: List[str]) -> List[str]:
+        # 檢查傳入值是否為 list 型別
+        if not isinstance(twitter_imgs_description, list):
+            logger.error(f"{twitter_imgs_description} 傳入值必須是 list 型別")
+            raise TypeError("檢查 _process_tweet_images replace_qp_url value!")
+
+        for i, url in enumerate(twitter_imgs_description):
             if url.endswith("?format=jpg"):
-                # 在URL末尾添加字符串 &name=orig 以強制獲取原始圖片大小
-                twitter_imgs.append(url + "&name=orig")
-            else:
-                twitter_imgs.append(url)
-        return twitter_imgs
+                twitter_imgs_description[i] += "&name=orig"
+        return twitter_imgs_description
 
     @ staticmethod
     @ lru_cache(maxsize=None)
@@ -176,7 +211,7 @@ class TwitterHandler(object):
         replace_qp_url.extend(TwitterHandler.PATTERN_mp4.findall(description))
 
         # 處理圖片和影片的URL列表
-        twitter_imgs_description = await TwitterHandler._process_imgs_videos(
+        twitter_imgs_description = await TwitterHandler._process_orig_imgs(
             replace_qp_url)
 
         # 計算圖片和影片的數量
@@ -195,12 +230,17 @@ class TwitterHandler(object):
             # 返回處理後的所有圖片網址和總圖片數量
             return str(twitter_imgs_description_str), int(twitter_description_imgs_count)
 
-    @staticmethod
-    @lru_cache(maxsize=None)
+    @ staticmethod
+    @ lru_cache(maxsize=None)
     def filter_entry_img(description: str) -> str:
         # 早返回
         if not description:
-            return "　"
+            logger.warning(
+                f"RSS description {description} is None or fail processing!",
+                type(description)
+            )
+            raise ValueError(
+                f'Checking description: |{description}| value status.')
 
         # 匹配描述中的標籤，直到遇到 <img src="、<video controls=" 或 <video src="
         description_match = TwitterHandler.DESCRIPTION_PATTERN_TAG.search(
@@ -211,16 +251,16 @@ class TwitterHandler(object):
             description = re.sub(r"<br\s*/?>", "\n",
                                  description_match.group(1))
         else:
-            description = "　"
+            logger.warning("filter_entry_img: 無法匹配描述中的標籤，可能是該貼文標題沒有內容")
+            description = ""
 
-        return description
+        return description  # Tweet Entry or None for no description
 
-    @ staticmethod
     @ lru_cache(maxsize=None)
-    def match_author_avatar(http_response_content: str) -> Optional[str]:
+    def match_author_avatar(self, http_response_content: str) -> Optional[str]:
         try:
             # 嘗試解析 XML 內容
-            xml_data = ET.fromstring(http_response_content)
+            xml_data = ET.fromstring(self.http_response_content)
         except ET.ParseError as e:
             # 如果內容不是有效的 XML，記錄錯誤並返回 None
             logger.error(f"ParseError: {e}")
@@ -270,28 +310,12 @@ class TwitterHandler(object):
                 return dc_channel
 
     @classmethod
-    async def create_twitter_rss_dict(
-        cls,
-        rss_entry: Element,
-        filter_entry: str,
-        pub_date_tw: str,
-        twitter_description_imgs_count: int,
-        twitter_imgs_description: str,
-        author_avatar: str
-    ) -> Dict[str, Any]:
-
+    async def create_twitter_rss_dict(cls, *args, **kwargs) -> Dict[str, Any]:
         # 建立和更新 Twitter RSS 字典
         await cls.Twitter_Dict_Manager.load_from_json()
         twitter_rss_dict = cls.Twitter_Dict_Manager()
 
-        await cls.update_twitter_dict(
-            rss_entry,
-            filter_entry,
-            pub_date_tw,
-            twitter_description_imgs_count,
-            twitter_imgs_description,
-            author_avatar,
-        )
+        await cls.update_twitter_dict(*args, **kwargs)
         return twitter_rss_dict
 
     @classmethod
@@ -322,22 +346,32 @@ class TwitterHandler(object):
             str(dc_channel),
         )
 
-        async def time_offset():
-            # 把Twitter 貼文網址 MD5當字典的 Key
-            MD5 = hashlib.md5(twitter_post_link.encode("utf-8")).hexdigest()
+        # 把Twitter 貼文網址 MD5當字典的 Key
+        MD5 = hashlib.md5(twitter_post_link.encode("utf-8")).hexdigest()
 
+        async def time_offset():
             match_set_md5 = set()
 
             time_diffs = TimeDifferenceCalculator.calculate_in_parallel(
                 [pub_date_tw])
-            if time_diffs:
+            if len(time_diffs) == 0:
+                logger.info("此RSS貼文超過24小時，不存到字典，可以控制是否開啟")
+            elif time_diffs:
                 match_set_md5.add(MD5)
                 twitter_dict = {MD5: tuple_of_dict}
 
                 # 把字典丟到 update_twitter_dict 方法
                 await cls.Twitter_Dict_Manager.update_twitter_dict(twitter_dict
                                                                    )
-        await asyncio.gather(time_offset())
+        if TwitterHandler.Dev_24hr_switch is True:
+            await asyncio.gather(time_offset())
+        else:
+            print(
+                '\033[38;2;255;230;128m開發者模式開啟，將存到字典，已經跳過\033[0m',
+                '\033[38;2;230;230;0m發文 \033[0m\033[38;5;99m24\033[0m \033[38;2;230;230;0m小時內的限製\033[0m'
+            )
+            await cls.Twitter_Dict_Manager.update_twitter_dict({MD5: tuple_of_dict}
+                                                               )
 
     class Twitter_Dict_Manager:
 
