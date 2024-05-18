@@ -46,7 +46,8 @@ from loguru import logger
 
 class TwitterHandler(object):
 
-    Dev_24hr_switch = False  # 開啟/關閉 24 小時開發模式
+    # Default is True
+    Dev_24hr_switch = True  # 開啟/關閉 24 小時開發模式
 
     PATTERN_twitter = re.compile(r'https://pbs.twimg.com/[^"\']+?\.(?:jpg)')
     PATTERN_jpg = re.compile(
@@ -67,7 +68,7 @@ class TwitterHandler(object):
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
         self.author_avatar = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
