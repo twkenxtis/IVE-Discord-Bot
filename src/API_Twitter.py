@@ -68,9 +68,6 @@ class TwitterHandler(object):
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
         self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
-        # self.twitter_imgs_description = None  # 儲存所有 Twitter 圖片 URLS
-        # self.twitter_description_imgs_count: int = None  # 計算有多少張 Twitter 圖片
-
         self.author_avatar = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -96,12 +93,6 @@ class TwitterHandler(object):
             self.parsed_rssfeed = await self.parse_feed()
             async for self.parsed_rssfeed, self.pub_date_tw, self.description in self.main_feedparser(self.parsed_rssfeed):
                 await self.process_entry(self.parsed_rssfeed)
-            """
-            print(self.description)
-            print(len(self.description))
-            print(id(self.description))
-            print(type(self.description))
-            """
             return self.parsed_rssfeed
 
     async def parse_feed(self) -> feedparser.FeedParserDict:
@@ -174,8 +165,7 @@ class TwitterHandler(object):
             )
 
         # 匹配作者頭像
-        self.author_avatar = self.match_author_avatar(
-            self.http_response_content)
+        self.author_avatar = self.match_author_avatar()
         # 建立 Twitter RSS 字典
         await TwitterHandler.create_twitter_rss_dict(
             rss_entry,
@@ -257,7 +247,7 @@ class TwitterHandler(object):
         return description  # Tweet Entry or None for no description
 
     @ lru_cache(maxsize=None)
-    def match_author_avatar(self, http_response_content: str) -> Optional[str]:
+    def match_author_avatar(self) -> Optional[str]:
         try:
             # 嘗試解析 XML 內容
             xml_data = ET.fromstring(self.http_response_content)
@@ -274,6 +264,7 @@ class TwitterHandler(object):
             if TwitterHandler.DESCRIPTION_PATTERN_AUTHOR.match(url_element.text):
                 return url_element.text
 
+        logger.warning("match_author_avatar: 無法匹配作者頭像，返回空字串")
         return ""  # 如果沒有匹配的URL，返回 空字串
 
     # 當找到 hashtags 時，調用 process_hashtags 函數
@@ -329,7 +320,6 @@ class TwitterHandler(object):
         author_avatar: str
     ) -> None:
 
-        post_title = filter_entry
         twitter_post_link = rss_entry.link
         dc_channel = await cls.process_hashtags(str(rss_entry.title))
 
@@ -337,7 +327,7 @@ class TwitterHandler(object):
         tuple_of_dict = (
             str(rss_entry.author),
             str(rss_entry.link),
-            str(post_title),
+            str(filter_entry),  # Tweet post_title
             str(pub_date_tw),
             f"{await get_formatted_current_time()}",
             int(twitter_description_imgs_count),
@@ -349,20 +339,37 @@ class TwitterHandler(object):
         # 把Twitter 貼文網址 MD5當字典的 Key
         MD5 = hashlib.md5(twitter_post_link.encode("utf-8")).hexdigest()
 
-        async def time_offset():
+        async def time_offset(match_set_md5=None):
             match_set_md5 = set()
 
-            time_diffs = TimeDifferenceCalculator.calculate_in_parallel(
-                [pub_date_tw])
-            if len(time_diffs) == 0:
-                logger.info("此RSS貼文超過24小時，不存到字典，可以控制是否開啟")
-            elif time_diffs:
-                match_set_md5.add(MD5)
-                twitter_dict = {MD5: tuple_of_dict}
+            if len(pub_date_tw) == 19:
+                time_diffs = TimeDifferenceCalculator.calculate_in_parallel(
+                    [pub_date_tw])
+                if len(time_diffs) == 0:
+                    logger.info("此RSS貼文超過24小時，不存到字典，可以控制是否開啟")
+                elif time_diffs:
+                    match_set_md5.add(MD5)
+                    twitter_dict = {MD5: tuple_of_dict}
 
-                # 把字典丟到 update_twitter_dict 方法
-                await cls.Twitter_Dict_Manager.update_twitter_dict(twitter_dict
-                                                                   )
+                    # 把字典丟到 update_twitter_dict 方法
+                    await cls.Twitter_Dict_Manager.update_twitter_dict(twitter_dict
+                                                                       )
+            else:
+                if isinstance(pub_date_tw, str):
+                    logger.warning(
+                        f"pub_date_tw: {pub_date_tw} 資料型態正確，檢查是否時間格式錯誤，無法正確計算時間差異")
+                    raise ValueError(f"pub_date_tw: {pub_date_tw} 字串時間格式錯誤! ")
+                elif isinstance(pub_date_tw, str) is False:
+                    logger.warning(
+                        f"pub_date_tw: {pub_date_tw} 格式錯誤，無法正確計算時間差異")
+                    raise ValueError(
+                        f"pub_date_tw: {pub_date_tw} 格式錯誤")
+                else:
+                    logger.error(
+                        f"pub_date_tw 有異常 {pub_date_tw} | {type(pub_date_tw)} | {len(pub_date_tw)} 無法正確計算時間差異")
+                    raise ValueError(
+                        f"pub_date_tw: {pub_date_tw} 異常，無法正確計算時間差異")
+
         if TwitterHandler.Dev_24hr_switch is True:
             await asyncio.gather(time_offset())
         else:
@@ -400,12 +407,16 @@ class TwitterHandler(object):
 
         @classmethod
         async def save_to_json(cls) -> None:
-            json_file = os.path.abspath(
-                os.path.join(
-                    os.path.dirname(
-                        __file__), "..", "assets", "Twitter_dict.json"
+            try:
+                json_file = os.path.abspath(
+                    os.path.join(
+                        os.path.dirname(
+                            __file__), "..", "assets", "Twitter_dict.json"
+                    )
                 )
-            )
+            except FileNotFoundError:
+                logger.error(f"json_file: {json_file} 文件不存在")
+                raise FileExistsError(f"json_file: {json_file} 文件不存在")
 
             # 使用 orjson 進行序列化
             json_data = orjson.dumps(cls.twitter_dict).decode('utf-8')
@@ -421,14 +432,19 @@ class TwitterHandler(object):
 
         @classmethod
         def save_to_pkl(cls, data: dict) -> None:
-            pkl_file = os.path.abspath(
-                os.path.join(
-                    os.path.dirname(
-                        __file__), "..", "assets", "Twitter_dict.pkl"
+            try:
+                pkl_file = os.path.abspath(
+                    os.path.join(
+                        os.path.dirname(
+                            __file__), "..", "assets", "Twitter_dict.pkl"
+                    )
                 )
-            )
+            except FileExistsError:
+                logger.error(f"pkl_file: {pkl_file} 文件不存在")
+                raise FileExistsError(f"pkl_file: {pkl_file} 文件不存在")
 
             with open(pkl_file, "wb") as pkl:
+                logger.info("數據保存到PKL成功")
                 pickle.dump(data, pkl)
 
         @classmethod
@@ -441,19 +457,29 @@ class TwitterHandler(object):
 
 class TimeDifferenceCalculator:
 
+    # 類定義台北時區
     TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
+    # 使用靜態方法計算時間差，並使用 lru_cache 進行緩存以提高效率
     @staticmethod
     @lru_cache(maxsize=None)
     def calculate_time_difference(target_time_str: str) -> float:
         try:
-            target_time = datetime.strptime(
-                target_time_str, "%Y/%m/%d %H:%M:%S").replace(tzinfo=TimeDifferenceCalculator.TAIPEI_TZ)
-            current_time = datetime.now().astimezone(TimeDifferenceCalculator.TAIPEI_TZ)
-            time_difference_seconds = (
-                current_time - target_time).total_seconds()
+            """
+            # 計算時間差（單位：秒）
+            CURRENT_TIME = datetime.now().astimezone(TimeDifferenceCalculator.TAIPEI_TZ)
+            target_time = datetime.strptime(target_time_str, "%Y/%m/%d %H:%M:%S").replace(tzinfo=TimeDifferenceCalculator.TAIPEI_TZ)
 
-            if time_difference_seconds < 86400:
+            time_difference_seconds = (CURRENT_TIME - target_time) -> Output: float(datetime.strptime(target_time_str, "%Y/%m/%d %H:%M:%S")
+
+            如果計算出的時間差小於24小時（86400秒），則返回該時間差（單位：秒）；否則返回 None
+            """
+            time_difference_seconds = (
+                datetime.now().astimezone(TimeDifferenceCalculator.TAIPEI_TZ) - datetime.strptime(
+                    target_time_str, "%Y/%m/%d %H:%M:%S").replace(tzinfo=TimeDifferenceCalculator.TAIPEI_TZ)).total_seconds()
+
+            # 如果時間差小於24小時
+            if time_difference_seconds <= 86400:
                 return time_difference_seconds
             else:
                 return None
@@ -461,22 +487,29 @@ class TimeDifferenceCalculator:
             logger.error(f"Error calculating time difference: {e}")
             return None
 
+    # 使用靜態方法並行計算多個時間差
     @staticmethod
-    def calculate_in_parallel(time_strings: Iterable[Union[str, Tuple[str]]], max_workers: int = 4) -> set:
-        results = set()
+    def calculate_in_parallel(cal_time_strings: Iterable[Union[str, Tuple[str]]], max_workers: int = 4) -> set:
+        # 初始化一個空集合用於存儲結果
+        parallelization = set()
         try:
+            # 創建一個最大工作數為 max_workers 的線程池
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [executor.submit(
-                    TimeDifferenceCalculator.calculate_time_difference, time_str) for time_str in time_strings]
-                for future, time_str in zip(as_completed(futures), time_strings):
+                    TimeDifferenceCalculator.calculate_time_difference, time_str) for time_str in cal_time_strings]
+                # 提交計算時間差的任務到線程池
+                for future, time_str in zip(as_completed(futures), cal_time_strings):
+                    # 獲取任務結果
                     result = future.result()
                     if result is not None:
-                        results.add(time_str) if isinstance(
-                            time_str, str) else results.add(time_str[0])
-            return results
+                        # 將結果添加到集合中
+                        parallelization.add(time_str) if isinstance(
+                            time_str, str) else parallelization.add(time_str[0])
+            return parallelization
         except Exception as e:
             logger.error(f"Error in parallel calculation: {e}")
-            return results
+            # 返回集合（即使發生錯誤也返回已經計算的結果）
+            return parallelization
 
 
 class start_API_Twitter:
@@ -506,5 +539,5 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    url = "http://192.168.0.225:8153/Midnight_YJ.xml"
+    url = ""
     asyncio.run(start_API_Twitter(url).get_response())
