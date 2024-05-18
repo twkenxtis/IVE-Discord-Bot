@@ -48,8 +48,10 @@ class HttpRequester:
         status_code_or_message = await self.send_request()  # 發送網路請求
         if status_code_or_message == 200:
             logger.info(f"{self.url} ─ {status_code_or_message}")
+            return
         else:
             logger.warning(f"{self.url} ─ {status_code_or_message}")
+            return
 
     async def close(self):
         await self.session.close()  # 關閉會話
