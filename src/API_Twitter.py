@@ -22,32 +22,38 @@ from http_utility import HttpRequester
 from ive_hash_tag import match_tags
 from timezone import TimeZoneConverter, get_formatted_current_time
 
-# feedparser includes software developed by Kurt McKee (contactme@kurtmckee.org)
-# and Mark Pilgrim (Copyright 2002-2008).
-# For full license terms, see the LICENSE file included with this distribution.
-import feedparser
-# orjson is used under the MIT License
-# Copyright (c) 2024 ijl
-# For more details, see the LICENSE file included with the distribution
-import orjson
-# aiocache - BSD 3-Clause License
-# Copyright (c) 2016, Manuel Miranda de Cid
-# For more details, see the LICENSE file included with the distribution
 from aiocache import cached, Cache
 # aiofiles - Apache License 2.0
 # Copyright (c) 2024, Tinche
 # For more details, see the LICENSE file included with the distribution
 import aiofiles
+# aiocache - BSD 3-Clause License
+# Copyright (c) 2016, Manuel Miranda de Cid
+# For more details, see the LICENSE file included with the distribution
+import feedparser
+# feedparser includes software developed by Kurt McKee (contactme@kurtmckee.org)
+# and Mark Pilgrim (Copyright 2002-2008).
+# For full license terms, see the LICENSE file included with this distribution.
+from loguru import logger
 # loguru is used under the MIT License
 # Copyright (c) 2024 Delgan
 # For more details, see the LICENSE file included with the distribution
-from loguru import logger
+import orjson
+# orjson is used under the MIT License
+# Copyright (c) 2024 ijl
+# For more details, see the LICENSE file included with the distribution
 
 
 class TwitterHandler(object):
 
+    # Default is False
+    Dev_24hr_switch = False  # 開啟/關閉 24 小時開發模式
+
     # Default is True
-    Dev_24hr_switch = True  # 開啟/關閉 24 小時開發模式
+    markdown_urls_switch = True  # 開啟/關閉 轉換 URL 為 Markdown 格式 (For Discord bot)
+    if markdown_urls_switch is True:
+        logger.info("Discord markdown url 模式已經開啟，將轉換所有 URL 為 Markdown 格式")
+        pass
 
     PATTERN_twitter = re.compile(r'https://pbs.twimg.com/[^"\']+?\.(?:jpg)')
     PATTERN_jpg = re.compile(
@@ -207,24 +213,34 @@ class TwitterHandler(object):
 
         # 計算圖片和影片的數量
         twitter_description_imgs_count = len(twitter_imgs_description)
-
         # 將圖片URL列表轉換為字符串，再以空格分割每個圖片URL，以便保存到字典中
         twitter_imgs_description_str = " ".join(twitter_imgs_description)
-
         # 如果沒有圖片URL，將其設置為 None
         twitter_imgs_description_str = twitter_imgs_description_str if twitter_imgs_description_str else None
 
+        # 錯誤處理判斷是否有圖片或影片，返回None並且 images_count 為 int(0)
         if twitter_imgs_description_str is None:
             logger.info("Twitter post 沒有匹配到任何圖片!")
             return None, 0
+        # 啟動條件為開啟類變數 markdown_urls_switch == True
+        # 將輸入的URL字符串分割成單獨的URL，並用Markdown格式標記每個URL，前面加上數字和圓括號
+        # EX: [1](https://www.example.com/) [2](https://www.example.org/) [3](https://www.iana.org/)
+        elif TwitterHandler.markdown_urls_switch is True:
+            # 使用.join法，所以列表推導內部迴圈都是字串操作'資料型態'不要認錯，[] 和 () 只是用來Markdown的常數str
+            twitter_imgs_description_str = " ".join(
+                [f"[{index+1}]({url})" for index,
+                 # 列表推導式，將 replace_qp_url 列表中的每個元素，加上數字和圓括號
+                    url in enumerate(twitter_imgs_description_str.split(" "))]  # 以空格區分出每個圖片URL
+            )
+            return str(twitter_imgs_description_str), int(twitter_description_imgs_count)
         else:
-            # 返回處理後的所有圖片網址和總圖片數量
+            # 返回string格式的描述內容和總圖片數量，每個網址將以空格分隔並且沒有markdown格式
             return str(twitter_imgs_description_str), int(twitter_description_imgs_count)
 
     @ staticmethod
     @ lru_cache(maxsize=None)
     def filter_entry_img(description: str) -> str:
-        # 早返回
+        # 有檢測錯誤的早返回
         if not description:
             logger.warning(
                 f"RSS description {description} is None or fail processing!",
@@ -371,7 +387,7 @@ class TwitterHandler(object):
                     raise ValueError(
                         f"pub_date_tw: {pub_date_tw} 異常，無法正確計算時間差異")
 
-        if TwitterHandler.Dev_24hr_switch is True:
+        if TwitterHandler.Dev_24hr_switch is False:
             await asyncio.gather(time_offset())
         else:
             print(
@@ -445,8 +461,8 @@ class TwitterHandler(object):
                 raise FileExistsError(f"pkl_file: {pkl_file} 文件不存在")
 
             with open(pkl_file, "wb") as pkl:
-                logger.info("數據保存到PKL成功")
                 pickle.dump(data, pkl)
+                logger.info(f"{data.keys()} 數據保存到PKL成功")
 
         @classmethod
         async def update_twitter_dict(cls, new_data: Dict[str, Any]) -> None:
@@ -458,7 +474,7 @@ class TwitterHandler(object):
 
 class TimeDifferenceCalculator:
 
-    # 類定義臺北時區
+    # 類定義台北時區
     TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
     # 使用靜態方法計算時間差，並使用 lru_cache 進行緩存以提高效率
@@ -540,5 +556,5 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    url = ""
+    url = "http://127.0.0.1:1200/twitter/media/REI_PIECE1"
     asyncio.run(start_API_Twitter(url).get_response())
