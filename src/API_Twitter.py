@@ -258,7 +258,10 @@ class TwitterHandler(object):
             description = re.sub(r"<br\s*/?>", "\n",
                                  description_match.group(1))
         else:
-            logger.warning("filter_entry_img: 無法匹配描述中的標籤，可能是該貼文標題沒有內容")
+            logger.warning(
+                "filter_entry_img: 無法解析貼文圖影，可能是該貼文中沒有發布任何相片或影片，或該貼文是轉貼文 ↓\n"
+                f"{description}"
+                )
             description = ""
 
         return description  # Tweet Entry or None for no description
@@ -479,7 +482,7 @@ class TimeDifferenceCalculator:
 
     # 使用靜態方法計算時間差，並使用 lru_cache 進行緩存以提高效率
     @staticmethod
-    @lru_cache(maxsize=None)
+    @lru_cache(maxsize=64)
     def calculate_time_difference(target_time_str: str) -> float:
         try:
             """
@@ -506,7 +509,7 @@ class TimeDifferenceCalculator:
 
     # 使用靜態方法並行計算多個時間差
     @staticmethod
-    def calculate_in_parallel(cal_time_strings: Iterable[Union[str, Tuple[str]]], max_workers: int = 4) -> set:
+    def calculate_in_parallel(cal_time_strings: Iterable[Union[str, Tuple[str]]], max_workers: int = 2) -> set:
         # 初始化一個空集合用於存儲結果
         parallelization = set()
         try:
@@ -556,5 +559,5 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    url = "http://127.0.0.1:1200/twitter/media/REI_PIECE1"
+    url = ""
     asyncio.run(start_API_Twitter(url).get_response())
