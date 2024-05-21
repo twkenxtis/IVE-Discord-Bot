@@ -10,6 +10,7 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import lru_cache
 
 from cache import cache_manager
+from timezone import get_formatted_current_time
 
 import discord
 from discord.ext import commands
@@ -106,8 +107,8 @@ class DCBot_Twitter(object):
             "for_everyoung10": "1237020545527054346",
             "LIZ": "1237020520092794950",
             "liz.yeyo": "1237020520092794950",
-            "LEESEO": "1237020484411985950",
-            "eeseooes": "1237020484411985950",
+            "LEESEO": "1242479090154340362",
+            "eeseooes": "1242479090154340362",
             "GROUPS": "1237421929229582439"
         }
         return int(channel_dict.get(ive_name))
@@ -147,7 +148,7 @@ def discord_twitter():
                                    ):
         if img_count > 0:
             await channel.send(twitter_all_img)
-            #await channel.send("**開發者模式**")
+            # await channel.send("**開發者模式**")
 
         dc_embed = await channel.send(embed=embed, view=button_view)
         if dc_embed:
@@ -160,8 +161,12 @@ def discord_twitter():
 
     @ client.event
     async def on_ready():
-        # 給自己知道登入身份
-        print(f"目前登入身份 --> {client.user}")
+        # 給自己知道目前使用的Discord Token登入機器人的身分
+        print(
+            f"\033[90m{await get_formatted_current_time()}\033[0m",
+            "\033[38;2;255;0;85m目前登入身份 --> \033[0m",
+            f"\033[38;2;255;140;26m{client.user}\033[0m"
+        )
         # Discord 機器人狀態
         await client.change_presence(
             activity=discord.Activity(
@@ -196,22 +201,29 @@ def discord_twitter():
                 break
 
         list_n = 0
-        list_max = len(dict_key) - 1
+        # List max 是用整個 Twitter_dict.keys() 列表索引值 -1 計算的
+        list_max = len(dict_key) - 1  # value list_max is an int
+
         while list_n <= list_max:
-            # 注意這裡要確保 list_n 不超出 value 列表的範圍
-            if list_n < len(value):
+            # 注意這裡要確保 list_n 不超出 value 列表的範圍和不重複訊息(list 超過 9 就是已發送)
+            # 因為字典的Value[10]是由Discord.py發送消息後呼叫Cache.py(Discord.py:155)寫入的，所以要List length == 9
+            if list_n < len(value) and len(value[list_n]) == 9:
                 MD5 = dict_key[list_n]
                 twitter_author = value[list_n][0]  # 貼文作者
                 twitter_link = value[list_n][1]  # 貼文網址
-                twitter_id = value[list_n][1][20:-27]  # 貼文網址Slice得到tweet英文作者ID
-                author_link = value[list_n][1][:-27]  # 貼文網址Slice得到tweet英文作者ID
+                # 貼文網址Slice得到tweet英文作者ID
+                twitter_id = value[list_n][1][20:-27]
+                # 貼文網址Slice得到tweet英文作者ID
+                author_link = value[list_n][1][:-27]
                 twitter_entry = value[list_n][2]  # Twitter 貼文內容
-                post_time = value[list_n][3]  # 2024/04/29 20:45:59 (貼文發布時間)
+                # 2024/04/29 20:45:59 (貼文發布時間)
+                post_time = value[list_n][3]
                 img_count = value[list_n][5]  # int 照片數量
                 twitter_all_img = value[list_n][6]  # 所有貼文照片網址
                 author_avatar = value[list_n][7]  # 貼文作者的頭像網址
                 ive_members = value[list_n][8]  # ive 成員名稱或GROUPS
-                minive_link = DCBot_Twitter.get_minive_link(value[list_n][8])
+                minive_link = DCBot_Twitter.get_minive_link(
+                    value[list_n][8])
                 channel_id = DCBot_Twitter.channel_id(value[list_n][8])
 
                 channel = client.get_channel(channel_id)
@@ -244,13 +256,12 @@ def discord_twitter():
 
                 button_view = ButtonView(url=twitter_link)
 
+                await send_discord_message(channel, ive_members, embed, button_view, twitter_id, twitter_all_img, MD5, int(img_count))
             else:
-                logger.error(
-                    f"Index {list_n} is out of range in 'value' list.")
-            # 確認完畢，List + 1 進入下一個迴圈直到字典遍歷完成
+                # Twitter_dict.pkl 字典中的如果有 value 10 "SENDED" 代表發送過，若訊息未發送過，則進入發送流程 While at :206
+                logger.info(f"此訊息: {dict_key[list_n]} 已經發送過不再次發送")
+            # 全部判斷式確認完畢，List + 1 進入下一個迴圈直到整個 Twitter_dict.pkl 字典遍歷完成
             list_n += 1
-
-            await send_discord_message(channel, ive_members, embed, button_view, twitter_id, twitter_all_img, MD5, int(img_count))
 
     try:
         client.run(DCBot_Twitter.load_DC_token())
