@@ -9,7 +9,7 @@ from datetime import datetime
 from concurrent.futures import ProcessPoolExecutor
 from functools import lru_cache
 
-from cache import dc_cache
+from cache import cache_manager
 
 import discord
 from discord.ext import commands
@@ -151,7 +151,7 @@ def discord_twitter():
 
         dc_embed = await channel.send(embed=embed, view=button_view)
         if dc_embed:
-            dc_cache(MD5)
+            cache_manager.dc_cache(MD5)
             logger.info(
                 f'發送到 {ive_members} 頻道 / Twitter帳號: {twitter_id} / MD5: {MD5} ─ OK'
             )
