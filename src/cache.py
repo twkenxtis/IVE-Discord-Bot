@@ -35,8 +35,13 @@ class CacheManager:
                 self.pkl_cache = pickle.loads(await pkl_file.read())
 
         if os.path.exists(self.file_path_json):
-            async with aiofiles.open(self.file_path_json, 'r') as json_file:
-                self.json_cache = json.loads(await json_file.read())
+            try:
+                async with aiofiles.open(self.file_path_json, 'r') as json_file:
+                    self.json_cache = json.loads(await json_file.read())
+            except json.JSONDecodeError:
+                async with aiofiles.open(self.file_path_json, 'w') as json_file:
+                    await json_file.write(json.dumps({}))
+                    pass
         else:
             # TODO: 之後再想資料庫如果被刪除怎麼處理
             logger.error(
