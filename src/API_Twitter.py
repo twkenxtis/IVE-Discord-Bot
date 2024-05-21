@@ -43,6 +43,7 @@ import orjson
 # Copyright (c) 2024 ijl
 # For more details, see the LICENSE file included with the distribution
 
+logging.basicConfig(level=logging.INFO)
 
 class TwitterHandler(object):
 
@@ -253,16 +254,17 @@ class TwitterHandler(object):
         description_match = TwitterHandler.DESCRIPTION_PATTERN_TAG.search(
             description)
 
-        if description_match:
-            # 從描述中過濾出完整的貼文標題把所有 <br> 標籤，換成 "\n"
-            description = re.sub(r"<br\s*/?>", "\n",
-                                 description_match.group(1))
-        else:
+        if not description_match:
             logger.warning(
                 "filter_entry_img: 無法解析貼文圖影，可能是該貼文中沒有發布任何相片或影片，或該貼文是轉貼文 ↓\n"
                 f"{description}"
                 )
-            description = ""
+            # 對於沒有匹配到圖影的只解析描述，並且將描述中的 <br> 標籤換成換行符號
+            description = re.sub(r"<br\s*/?>", "\n",
+                                 description)
+        else:
+            description = re.sub(r"<br\s*/?>", "\n",
+                                 description_match.group(1))
 
         return description  # Tweet Entry or None for no description
 
@@ -557,7 +559,5 @@ class start_API_Twitter:
 
 if __name__ == "__main__":
 
-    logging.basicConfig(level=logging.INFO)
-
-    url = ""
+    url = "http://127.0.0.1:8153/SPEED_REISEO.xml"
     asyncio.run(start_API_Twitter(url).get_response())
