@@ -45,6 +45,7 @@ import orjson
 
 logging.basicConfig(level=logging.INFO)
 
+
 class TwitterHandler(object):
 
     # Default is False
@@ -56,9 +57,10 @@ class TwitterHandler(object):
         logger.info("Discord markdown url 模式已經開啟，將轉換所有 URL 為 Markdown 格式")
         pass
 
-    PATTERN_twitter = re.compile(r'https://pbs.twimg.com/[^"\']+?\.(?:jpg)')
-    PATTERN_jpg = re.compile(
+    PATTERN_tweet_img = re.compile(
         r'https://pbs.twimg.com/media/[^"\']+?\?format=jpg')
+    PATTERN_video_thumb = re.compile(
+        r'https://pbs.twimg.com/tweet_video_thumb/[^"\']+?\.(?:jpg)')
     PATTERN_mp4 = re.compile(r'https://video.twimg.com/[^"\']+?\.(?:mp4)')
     DESCRIPTION_PATTERN_TAG = re.compile(
         r'((?:.|\n)*?)(?:<img src="|<video controls="|<video src=")'
@@ -204,8 +206,7 @@ class TwitterHandler(object):
 
         # 使用預先編譯的正則表達式模式來查找所有圖片和影片的URL
         replace_qp_url.extend(
-            TwitterHandler.PATTERN_twitter.findall(description))
-        replace_qp_url.extend(TwitterHandler.PATTERN_jpg.findall(description))
+            TwitterHandler.PATTERN_tweet_img.findall(description))
         replace_qp_url.extend(TwitterHandler.PATTERN_mp4.findall(description))
 
         # 處理圖片和影片的URL列表
@@ -258,7 +259,7 @@ class TwitterHandler(object):
             logger.warning(
                 "filter_entry_img: 無法解析貼文圖影，可能是該貼文中沒有發布任何相片或影片，或該貼文是轉貼文 ↓\n"
                 f"{description}"
-                )
+            )
             # 對於沒有匹配到圖影的只解析描述，並且將描述中的 <br> 標籤換成換行符號
             description = re.sub(r"<br\s*/?>", "\n",
                                  description)
@@ -559,5 +560,5 @@ class start_API_Twitter:
 
 if __name__ == "__main__":
 
-    url = "http://127.0.0.1:8153/SPEED_REISEO.xml"
+    url = ""
     asyncio.run(start_API_Twitter(url).get_response())
