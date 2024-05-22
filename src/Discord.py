@@ -1,7 +1,6 @@
 # IVE-Discord-Bot is used under the MIT License
 # Copyright (c) 2024 twkenxtis (ytiq8nxnm@mozmail.com)
 # For more details, see the LICENSE file included with the distribution
-import asyncio
 import logging
 import os
 import pickle
@@ -14,7 +13,7 @@ from timezone import get_formatted_current_time
 
 import discord
 from discord.ext import commands
-from discord import Embed
+# from discord import Embed
 # discord is used under the MIT License
 # Copyright (c) 2015-present Rapptz
 # For more details, see the LICENSE file included with the distribution
@@ -71,19 +70,19 @@ class DCBot_Twitter(object):
     @ lru_cache(maxsize=12)
     def get_minive_link(ive_name: str) -> str:
         minive_link = {
-            "GAEUL": "https://i.imgur.com/H8dA0kV.png",
-            "fallingin__fall": "https://i.imgur.com/H8dA0kV.png",
-            "YUJIN": "https://i.imgur.com/jgYovTl.png",
-            "_yujin_an": "https://i.imgur.com/jgYovTl.png",
-            "REI": "https://i.imgur.com/K73vFNP.png",
-            "reinyourheart": "https://i.imgur.com/K73vFNP.png",
-            "WONYOUNG": "https://i.imgur.com/pe2k3p7.png",
-            "for_everyoung10": "https://i.imgur.com/pe2k3p7.png",
-            "LIZ": "https://i.imgur.com/Au63MYD.png",
-            "liz.yeyo": "https://i.imgur.com/Au63MYD.png",
-            "LEESEO": "https://i.imgur.com/yBF6lpY.png",
-            "eeseooes": "https://i.imgur.com/yBF6lpY.png",
-            "GROUPS": "https://i.imgur.com/GcBL6V9.png"
+            "GAEUL": "https://i.imgur.com/UiEwQ7l.png",
+            "fallingin__fall": "https://i.imgur.com/UiEwQ7l.png",
+            "YUJIN": "https://i.imgur.com/d4KBTtz.png",
+            "_yujin_an": "https://i.imgur.com/d4KBTtz.png",
+            "REI": "https://i.imgur.com/sUpaBon.png",
+            "reinyourheart": "https://i.imgur.com/sUpaBon.png",
+            "WONYOUNG": "https://i.imgur.com/59R7HpU.png",
+            "for_everyoung10": "https://i.imgur.com/59R7HpU.png",
+            "LIZ": "https://i.imgur.com/kjxBjbj.png",
+            "liz.yeyo": "https://i.imgur.com/kjxBjbj.png",
+            "LEESEO": "https://i.imgur.com/eBFe7Ge.png",
+            "eeseooes": "https://i.imgur.com/eBFe7Ge.png",
+            "GROUPS": "https://i.imgur.com/WnkrrJS.png"
         }
 
         if minive_link.get(ive_name) is not None:
@@ -97,19 +96,19 @@ class DCBot_Twitter(object):
     @ lru_cache(maxsize=7)
     def channel_id(ive_name):
         channel_dict = {
-            "GAEUL": "1237020442183860276",
-            "fallingin__fall": "1237020442183860276",
-            "YUJIN": "1237020290987458643",
-            "_yujin_an": "1237020290987458643",
-            "REI": "1238508631876567120",
-            "reinyourheart": "1238508631876567120",
-            "WONYOUNG": "1237020545527054346",
-            "for_everyoung10": "1237020545527054346",
-            "LIZ": "1237020520092794950",
-            "liz.yeyo": "1237020520092794950",
-            "LEESEO": "1242479090154340362",
-            "eeseooes": "1242479090154340362",
-            "GROUPS": "1237421929229582439"
+            "GAEUL": "1242763427277963286",
+            "fallingin__fall": "1242763427277963286",
+            "YUJIN": "1242763450971586641",
+            "_yujin_an": "1242763450971586641",
+            "REI": "1242763473746661426",
+            "reinyourheart": "1242763473746661426",
+            "WONYOUNG": "1242763495339065407",
+            "for_everyoung10": "1242763495339065407",
+            "LIZ": "1242763521003884576",
+            "liz.yeyo": "1242763521003884576",
+            "LEESEO": "1242763542873247806",
+            "eeseooes": "1242763542873247806",
+            "GROUPS": "1242763566264614948"
         }
         return int(channel_dict.get(ive_name))
 
@@ -137,8 +136,8 @@ class ButtonView(discord.ui.View):
 # Discord bot 全局設定
 intents = discord.Intents.default()
 intents.message_content = True
-# 前綴設定為None，不使用預設的 !
-client = commands.Bot(command_prefix=None, intents=intents)
+# 前綴設定
+client = commands.Bot(command_prefix='!!', intents=intents)
 
 
 def discord_twitter():
@@ -161,7 +160,7 @@ def discord_twitter():
 
     @ client.event
     async def on_ready():
-        # 給自己知道目前使用的Discord Token登入機器人的身分
+        # 給自己知道目前使用的Discord Token登入機器人的身份
         print(
             f"\033[90m{await get_formatted_current_time()}\033[0m",
             "\033[38;2;255;0;85m目前登入身份 --> \033[0m",
@@ -176,55 +175,27 @@ def discord_twitter():
         )
         await send_embed()
 
-    @ client.event
-    async def send_embed():
+    @client.command()
+    async def ping(ctx):
+        await ctx.reply(f'Ping is **{round(client.latency * 1000)}** ms')
 
+    @client.event
+    async def send_embed():
         try:
-            # 從 DCBot_Twitter 同時加載數據
             twitter_dict = DCBot_Twitter.load_data_concurrently()
         except FileNotFoundError as e:
             logger.error(e)
         except ValueError as e:
             logger.error(e)
 
-        dict_key = []
-        for key in twitter_dict.keys():
-            # 遍歷字典的鍵，將每個鍵添加到 dict_key 列表中
-            dict_key.append(key)
+        for MD5, values in twitter_dict.items():
+            if len(values) == 9:
+                twitter_author, twitter_link, twitter_entry, post_time, system_time, img_count, twitter_all_img, avatar_link, ive_members = values
 
-        value = []
-        # 提取字典的值
-        for key in twitter_dict.keys():
-            # 遍歷字典的鍵，對於每個鍵，獲取其對應的值並添加到 value 列表中，然後跳出內部循環
-            for _ in twitter_dict.get(key):
-                value.append(twitter_dict.get(key))
-                break
-
-        list_n = 0
-        # List max 是用整個 Twitter_dict.keys() 列表索引值 -1 計算的
-        list_max = len(dict_key) - 1  # value list_max is an int
-
-        while list_n <= list_max:
-            # 注意這裡要確保 list_n 不超出 value 列表的範圍和不重複訊息(list 超過 9 就是已發送)
-            # 因為字典的Value[10]是由Discord.py發送消息後呼叫Cache.py(Discord.py:155)寫入的，所以要List length == 9
-            if list_n < len(value) and len(value[list_n]) == 9:
-                MD5 = dict_key[list_n]
-                twitter_author = value[list_n][0]  # 貼文作者
-                twitter_link = value[list_n][1]  # 貼文網址
-                # 貼文網址Slice得到tweet英文作者ID
-                twitter_id = value[list_n][1][20:-27]
-                # 貼文網址Slice得到tweet英文作者ID
-                author_link = value[list_n][1][:-27]
-                twitter_entry = value[list_n][2]  # Twitter 貼文內容
-                # 2024/04/29 20:45:59 (貼文發布時間)
-                post_time = value[list_n][3]
-                img_count = value[list_n][5]  # int 照片數量
-                twitter_all_img = value[list_n][6]  # 所有貼文照片網址
-                author_avatar = value[list_n][7]  # 貼文作者的頭像網址
-                ive_members = value[list_n][8]  # ive 成員名稱或GROUPS
-                minive_link = DCBot_Twitter.get_minive_link(
-                    value[list_n][8])
-                channel_id = DCBot_Twitter.channel_id(value[list_n][8])
+                twitter_id = twitter_link[20:-27]
+                author_link = twitter_link[:-27]
+                minive_link = DCBot_Twitter.get_minive_link(ive_members)
+                channel_id = DCBot_Twitter.channel_id(ive_members)
 
                 channel = client.get_channel(channel_id)
 
@@ -235,7 +206,7 @@ def discord_twitter():
                 )
 
                 embed.set_author(
-                    name='New tweet ─  @' + twitter_id,
+                    name='ɴᴇᴡ ᴛᴡᴇᴇᴛ  ⎼  @' + twitter_id,
                     icon_url=minive_link,
                 )
 
@@ -245,7 +216,7 @@ def discord_twitter():
                     inline=False,
                 )
 
-                embed.set_thumbnail(url=author_avatar)
+                embed.set_thumbnail(url=avatar_link)
 
                 embed.timestamp = datetime.strptime(
                     post_time, '%Y/%m/%d %H:%M:%S'
@@ -258,10 +229,7 @@ def discord_twitter():
 
                 await send_discord_message(channel, ive_members, embed, button_view, twitter_id, twitter_all_img, MD5, int(img_count))
             else:
-                # Twitter_dict.pkl 字典中的如果有 value 10 "SENDED" 代表發送過，若訊息未發送過，則進入發送流程 While at :206
-                logger.info(f"此訊息: {dict_key[list_n]} 已經發送過不再次發送")
-            # 全部判斷式確認完畢，List + 1 進入下一個迴圈直到整個 Twitter_dict.pkl 字典遍歷完成
-            list_n += 1
+                logger.info(f"此訊息: {MD5} 已經發送過不再次發送")
 
     try:
         client.run(DCBot_Twitter.load_DC_token())
