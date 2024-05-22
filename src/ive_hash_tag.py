@@ -39,11 +39,17 @@ tag_dict = {
 # lru_cache 會儲存函數的調用結果，避免重複計算
 @lru_cache(maxsize=None)
 def ive_tag_dict():
+    """
+    返回 Discord 標籤字典。
+
+    返回值:
+    - dict: 包含 Discord 標籤對應值的字典
+    """
     return tag_dict
 
 
 # 異步函數用於匹配輸入集合中的標籤
-async def match_tags(input_set_to_search: set) -> set:
+def match_tags(input_set_to_search: set) -> set:
     """
     使用生成器表達式和集合推導式來高效地匹配標籤並返回匹配到的值的集合。
 
