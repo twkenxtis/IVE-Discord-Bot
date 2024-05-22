@@ -43,12 +43,24 @@ def ive_tag_dict():
 
 
 # 異步函數用於匹配輸入集合中的標籤
-async def match_tags(input_set_to_search: set) -> str:
-    # 初始化一個空集合來存儲匹配到的值
-    matched_values = set()
-    # 遍歷輸入集合中的每個標籤
-    for tag in input_set_to_search:
-        # 如果標籤在字典中，更新匹配到的值
-        if tag in ive_tag_dict():
-            matched_values.update(ive_tag_dict()[tag])
-    return matched_values
+async def match_tags(input_set_to_search: set) -> set:
+    """
+    使用生成器表達式和集合推導式來高效地匹配標籤並返回匹配到的值的集合。
+
+    參數:
+    - input_set_to_search (set): 接受一個集合 input_set_to_search 作為輸入
+
+    返回值:
+    - set: 返回包含所有匹配 Discord 標籤的新集合
+    """
+    # 返回一個集合，集合中的元素是根據輸入集合中標籤匹配到的Discord值
+    return {
+        # 使用集合推導式構建匹配到的值的集合
+        dict_value
+        # 遍歷輸入集合中的每個標籤
+        for tag in input_set_to_search
+        # 檢查標籤 tag 是否存在於 ive_tag_dict 字典中
+        if tag in ive_tag_dict()
+        # 遍歷方式將所有匹配的 Discord 標籤添加到新的集合中
+        for dict_value in ive_tag_dict()[tag]
+    }
