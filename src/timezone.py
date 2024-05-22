@@ -2,7 +2,6 @@
 # Copyright (c) 2024 twkenxtis (ytiq8nxnm@mozmail.com)
 # For more details, see the LICENSE file included with the distribution
 from datetime import datetime
-from functools import lru_cache
 from zoneinfo import ZoneInfo
 
 # aiofiles - Apache License 2.0
@@ -40,7 +39,7 @@ class TimeZoneConverter:
 
 
 # 異步方法，用於獲取當前時間並按指定格式輸出
-@ lru_cache(maxsize=1800)
+@cached(ttl=1800, cache=Cache.MEMORY)
 async def get_formatted_current_time(
     format_string: str = "%Y/%m/%d %H:%M:%S"
 ) -> str:
