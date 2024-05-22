@@ -25,7 +25,7 @@ class CacheManager:
         self.file_path_json = os.path.join(
             self.script_dir, '..', 'assets', 'Twitter_dict.json')
         self.loop = asyncio.get_event_loop()
-       # 允許 nest_asyncio 嵌套的事件循環
+        # 允許 nest_asyncio 嵌套的事件循環
         nest_asyncio.apply(self.loop)
 
     async def load_cache(self):
@@ -41,6 +41,7 @@ class CacheManager:
             except json.JSONDecodeError:
                 async with aiofiles.open(self.file_path_json, 'w') as json_file:
                     await json_file.write(json.dumps({}))
+                    logger.warning('WARNING! ― 資料庫為空資料!')
                     pass
         else:
             # TODO: 之後再想資料庫如果被刪除怎麼處理
