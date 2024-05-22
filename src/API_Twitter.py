@@ -23,11 +23,11 @@ from ive_hash_tag import match_tags
 from timezone import TimeZoneConverter, get_formatted_current_time
 
 from aiocache import cached, Cache
-# aiofiles - Apache License 2.0
+# aiocache - Apache License 2.0
 # Copyright (c) 2024, Tinche
 # For more details, see the LICENSE file included with the distribution
 import aiofiles
-# aiocache - BSD 3-Clause License
+# aiofiles - BSD 3-Clause License
 # Copyright (c) 2016, Manuel Miranda de Cid
 # For more details, see the LICENSE file included with the distribution
 import feedparser
