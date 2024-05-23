@@ -1,0 +1,13 @@
+[dependencies]
+aiohttp = ">=3.9.5"
+aiocache = ">=0.12.2"
+discord = ">=2.3.2"
+discord-py-interactions = ">=5.12.1"
+fake-useragent = ">=1.5.1"
+feedparser = ">=6.0.11"
+httpx = ">=0.27.0"
+loguru = ">=0.7.2"
+nest_asyncio = ">=1.6.0"
+orjson = ">=3.10.3"
+requests = ">=2.32.2"
+toml = ">=0.10.2"
