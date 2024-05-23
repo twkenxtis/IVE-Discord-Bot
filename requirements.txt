@@ -1,6 +1,6 @@
 aiohttp
 aiocache
-discord.py
+discord
 fake-useragent
 feedparser
 httpx
@@ -9,3 +9,4 @@ requests
 orjson
 loguru
 nest_asyncio
+toml
