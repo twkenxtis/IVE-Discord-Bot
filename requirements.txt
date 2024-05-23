@@ -1,12 +1,12 @@
 aiohttp
 aiocache
 discord
+discord-py-interactions
 fake-useragent
 feedparser
 httpx
-instaloader
-requests
-orjson
 loguru
 nest_asyncio
+orjson
+requests
 toml
