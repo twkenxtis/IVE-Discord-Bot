@@ -1,3 +1,6 @@
+# IVE-Discord-Bot is used under the MIT License
+# Copyright (c) 2024 twkenxtis (ytiq8nxnm@mozmail.com)
+# For more details, see the LICENSE file included with the distribution
 import aiofiles
 import asyncio
 import json
@@ -27,12 +30,24 @@ class CacheManager:
         self.loop = asyncio.get_event_loop()
         # 允許 nest_asyncio 嵌套的事件循環
         nest_asyncio.apply(self.loop)
+        self.pkl_len = None
+        self.json_len = None
 
     async def load_cache(self):
-        # 異步載入緩存數據
-        if os.path.exists(self.file_path_pkl):
-            async with aiofiles.open(self.file_path_pkl, 'rb') as pkl_file:
-                self.pkl_cache = pickle.loads(await pkl_file.read())
+        while True:
+            if os.path.exists(self.file_path_pkl):
+                async with aiofiles.open(self.file_path_pkl, 'rb') as pkl_file:
+                    try:
+                        content = await pkl_file.read()
+                        self.pkl_cache = pickle.loads(content)
+                        break
+                    except EOFError:
+                        await asyncio.sleep(0.1)
+                    except Exception as e:
+                        await asyncio.sleep(0.1)
+            else:
+                print("Error: 找不到 Twitter_dict.pkl 文件，重試中...")
+                await asyncio.sleep(0.1)
 
         if os.path.exists(self.file_path_json):
             try:
@@ -41,7 +56,6 @@ class CacheManager:
             except json.JSONDecodeError:
                 async with aiofiles.open(self.file_path_json, 'w') as json_file:
                     await json_file.write(json.dumps({}))
-                    logger.warning('WARNING! ― 資料庫為空資料!')
                     pass
         else:
             # TODO: 之後再想資料庫如果被刪除怎麼處理
@@ -71,12 +85,18 @@ class CacheManager:
         if MD5 not in self.json_cache:
             self.json_cache[MD5] = []
 
-        self.pkl_cache[MD5].append(value)
-        self.json_cache[MD5].append(value)
-
-        await self.save_cache()
+        self.pkl_len = len(self.pkl_cache[MD5])
+        self.json_len = len(self.json_cache[MD5])
+        if self.pkl_len and self.json_len == 9:
+            self.pkl_cache[MD5].append(value)
+            self.json_cache[MD5].append(value)
+            await self.save_cache()
+        else:
+            await asyncio.sleep(0.05)
+            cache_manager.initialize_cache()
 
     # MD5 是字典中固定的Key 接收外部傳入的MD5值
+
     def dc_cache(self, MD5):
         # 使用事件循環運行異步任務
         self.loop.run_until_complete(self.dc_cache_async(MD5))
