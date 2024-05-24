@@ -8,5 +8,6 @@ httpx
 loguru
 nest_asyncio
 orjson
+pynacl
 requests
 toml
