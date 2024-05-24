@@ -204,7 +204,7 @@ def discord_twitter():
     @ client.event
     # Token順利登入後的主事件函式
     async def on_ready():
-        # 給自己知道目前使用哪一個 Discord Token 來登入機器人的身分
+        # 給自己知道目前使用哪一個 Discord Token 來登入機器人的身份
         print(
             f"\033[90m{await get_formatted_current_time()}\033[0m",
             "\033[38;2;255;0;85m目前登入身份 --> \033[0m",
@@ -224,7 +224,7 @@ def discord_twitter():
         while True:
             await send_embed()
             # 主檢測循環，時間調整(秒為單位)
-            await asyncio.sleep(1009)
+            await asyncio.sleep(13)
 
     @client.command()
     async def ping(ctx):
