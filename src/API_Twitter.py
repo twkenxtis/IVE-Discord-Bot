@@ -39,10 +39,6 @@ from loguru import logger
 # loguru is used under the MIT License
 # Copyright (c) 2024 Delgan
 # For more details, see the LICENSE file included with the distribution
-import nest_asyncio
-# nest_asyncio - BSD 2-Clause License
-# Copyright (c) 2018-2020, Ewald de Wit
-# For more details, see the LICENSE file included with the distribution
 import orjson
 # orjson is used under the MIT License
 # Copyright (c) 2024 ijl
@@ -84,7 +80,7 @@ class TwitterHandler(object):
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
