@@ -4,6 +4,7 @@ discord
 discord-py-interactions
 fake-useragent
 feedparser
+filelock
 httpx
 loguru
 nest_asyncio
