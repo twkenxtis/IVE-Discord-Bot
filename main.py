@@ -127,7 +127,7 @@ class RSS_List_Pop_up:
         for url in self.popup_list(rss_list):
 
             # 組合 rsshub 請求網址
-            url = f"{rsshub_url}twitter/media/{url}"
+            url = f"{rsshub_url}{url}"
 
             asyncio.run(start_API_Twitter(url).get_response())
             # 決定下次迭代間的等待時間
