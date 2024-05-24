@@ -120,11 +120,8 @@ class RSS_List_Pop_up:
         # 逐步列印列表的值
         for url in self.popup_list(rss_list):
 
-            # TODO: Apache Development 開發使用網址
-            url = f"{rsshub_url}{url}.xml"
-
             # 組合 rsshub 請求網址
-            # url = f"{rsshub_url}{url}"
+            url = f"{rsshub_url}{url}"
 
             asyncio.run(start_API_Twitter(url).get_response())
             # 決定下次迭代間的等待時間
@@ -203,7 +200,9 @@ class RSS_List_Pop_up:
             )
 
         # 定義多個觸發時間（24小時製）
-        trigger_times = [(9, 0), (12, 0), (15, 0), (18, 0), (21, 31), (3, 0)]
+        trigger_times = [
+            (9, 0), (12, 0), (16, 0), (20, 0), (24, 00), (6, 0)
+        ]
         try:
             while True:
                 now = datetime.now()
