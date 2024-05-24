@@ -1,19 +1,21 @@
 # IVE-Discord-Bot is used under the MIT License
 # Copyright (c) 2024 twkenxtis (ytiq8nxnm@mozmail.com)
 # For more details, see the LICENSE file included with the distribution
+import asyncio
 import logging
 import os
 import pickle
-from datetime import datetime
+import time
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime
 from functools import lru_cache
 
 from cache import cache_manager
+from custom_log import logger_API__Discord
 from timezone import get_formatted_current_time
 
 import discord
 from discord.ext import commands
-# from discord import Embed
 # discord is used under the MIT License
 # Copyright (c) 2015-present Rapptz
 # For more details, see the LICENSE file included with the distribution
@@ -33,8 +35,8 @@ class DCBot_Twitter(object):
     def load_pickle_dict() -> dict:
         # 獲取pkl文件的絕對路徑
         pkl_file = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..",
-                         "assets", "Twitter_dict.pkl")
+            os.path.join(os.path.dirname(__file__),
+                         "..", "assets", "Twitter_dict.pkl")
         )
         if not os.path.isfile(pkl_file):
             # 若文件不存在，通過日誌記錄錯誤信息並拋出FileNotFoundError
@@ -49,23 +51,39 @@ class DCBot_Twitter(object):
     @staticmethod
     # 定義一個用於並發加載數據的靜態方法，返回字典類型的數據
     def load_data_concurrently() -> dict:
-        # 使用ProcessPoolExecutor創建進程池進行並發執行
-        with ProcessPoolExecutor() as executor:
-            # 提交load_pickle_dict方法至進程池執行，並使用result()等待結果返回
-            return executor.submit(DCBot_Twitter.load_pickle_dict).result()
+        try:
+            # 使用ProcessPoolExecutor創建進程池進行並發執行
+            with ProcessPoolExecutor() as executor:
+                # 提交load_pickle_dict方法至進程池執行，並使用result()等待結果返回
+                return executor.submit(DCBot_Twitter.load_pickle_dict).result()
+        except UnboundLocalError:
+            raise
+        except FileNotFoundError:
+            raise
+        except EOFError:
+            # 若讀寫 IO 打架就0.1秒無限重試
+            time.sleep(0.1)
+            DCBot_Twitter.load_data_concurrently()
 
     @staticmethod
     def load_DC_token():
-        # 獲取當前腳本所在目錄
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        # 打開.env文件
-        with open(os.path.join(script_dir, '..', 'config', '.env'), 'r') as env_file:
-            # 逐行讀取文件
-            for line in env_file:
-                # 如果該行以'Discord_TOKEN'開頭
-                if line.startswith('Discord_TOKEN'):
-                    # 返回等號後的值，並去除空格
-                    return line.split('=')[1].strip()
+        try:
+            # 獲取當前腳本所在目錄
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            # 打開.env文件
+            with open(os.path.join(script_dir, '..', 'config', '.env'), 'r') as env_file:
+                # 逐行讀取文件
+                for line in env_file:
+                    # 如果該行以'Discord_TOKEN'開頭
+                    if line.startswith('Discord_TOKEN'):
+                        # 返回等號後的值，並去除空格
+                        return line.split('=')[1].strip()
+
+                logger.critical("無法於環境變數文件找到 Discord_TOKEN 值")
+                raise ValueError("請確認.env文件是否包含 Discord_TOKEN 欄位")
+        except FileNotFoundError:
+            logger.error("找不到.env文件，請重新建立環境變數檔案")
+            raise FileNotFoundError("找不到.env文件，請重新建立環境變數檔案")
 
     @ lru_cache(maxsize=12)
     def get_minive_link(ive_name: str) -> str:
@@ -85,31 +103,29 @@ class DCBot_Twitter(object):
             "GROUPS": "https://i.imgur.com/WnkrrJS.png"
         }
 
-        if minive_link.get(ive_name) is not None:
-            return minive_link.get(ive_name)
-
-        logger.error(
-            "無法匹配到對應成員的Minive URL，請檢查PKL字典-> Value[8] 是否是正確的成員名稱或GROUPS")
-        raise ValueError('Minive url match failed')
+        # 因為 'async def send_embed' 會確保只有正確的傳入值所以不捕捉錯誤，直接 return value
+        return minive_link.get(ive_name)
 
     @staticmethod
     @ lru_cache(maxsize=7)
-    def channel_id(ive_name):
+    def channel_id(ive_name: str) -> int:
         channel_dict = {
-            "GAEUL": "1242763427277963286",
-            "fallingin__fall": "1242763427277963286",
-            "YUJIN": "1242763450971586641",
-            "_yujin_an": "1242763450971586641",
-            "REI": "1242763473746661426",
-            "reinyourheart": "1242763473746661426",
-            "WONYOUNG": "1242763495339065407",
-            "for_everyoung10": "1242763495339065407",
-            "LIZ": "1242763521003884576",
-            "liz.yeyo": "1242763521003884576",
-            "LEESEO": "1242763542873247806",
-            "eeseooes": "1242763542873247806",
-            "GROUPS": "1242763566264614948"
+            "GAEUL": "1142900837300043889",
+            "fallingin__fall": "1142900837300043889",
+            "YUJIN": "1142900711315734599",
+            "_yujin_an": "1142900711315734599",
+            "REI": "1142900891393994782",
+            "reinyourheart": "1142900891393994782",
+            "WONYOUNG": "1142900973405229056",
+            "for_everyoung10": "1142900973405229056",
+            "LIZ": "1142901102526869556",
+            "liz.yeyo": "1142901102526869556",
+            "LEESEO": "1142901201332097205",
+            "eeseooes": "1142901201332097205",
+            "GROUPS": "1157550597248135208"
         }
+        # 因為 'async def send_embed' 會確保只有正確的傳入值所以不捕捉錯誤，直接 return value
+        # 注意 return 值為字串，所以要用 str() 轉換成 int 類型，不然 Discord API 會拒絕並報錯
         return int(channel_dict.get(ive_name))
 
 
@@ -120,7 +136,7 @@ class ButtonView(discord.ui.View):
 
         # 創建一個連結按鈕
         url_button = discord.ui.Button(
-            label="View on X",
+            label="在推特上查看",
             # 按鈕樣式為連結
             style=discord.ButtonStyle.link,
             # 按鈕連結的URL
@@ -134,6 +150,7 @@ class ButtonView(discord.ui.View):
 
 
 # Discord bot 全局設定
+# https://discordpy.readthedocs.io/en/stable/intro.html
 intents = discord.Intents.default()
 intents.message_content = True
 # 前綴設定
@@ -142,67 +159,116 @@ client = commands.Bot(command_prefix='!!', intents=intents)
 
 def discord_twitter():
 
+    # 接收格式化好的 Value 並發送Discord訊息函式
     async def send_discord_message(channel, ive_members, embed, button_view,
                                    twitter_id, twitter_all_img, MD5, img_count,
                                    ):
-        if img_count > 0:
-            await channel.send(twitter_all_img)
-            # await channel.send("**開發者模式**")
+        """
+        cache_manager(object).dc_cache(fun) 用來儲存已發送過的訊息MD5值
+        並對字典以更新的方式寫入 "SENDED" 值，以便Discord.py 識別訊息是否已經被發送過
+        詳細工作流程請參考 cache.py
+        """
+        cache_manager.dc_cache(MD5)
 
+        # 為什麼檢測 img_count 是因為寫法是圖片放在一般訊息以markdown url發送
+        # 並沒有把圖片放在Embed的內容中，因此需要判斷圖片數量，因為不一定有圖片可以發送
+        if img_count > 0:
+            # 這是一般訊息的內容 使用 channel.send 我放在 Embed 程式碼的上方讓照片先發送
+            try:
+                await channel.send(twitter_all_img)
+            except AttributeError:
+                logger.info("Twitter_dict.pkl 字典資訊處理成功，訊息準備發送前檢測到錯誤")
+                logger.critical(
+                    "頻道ID不正確，無法發送Discord訊息"
+                )
+                logger.warning(
+                    "請確認class DCBot_Twitter(object): def channel_id 函式中的字典 channel ID 硬編碼值是否為正確 return資料型別是否是 int ?"
+                )
+                raise ("Discord 頻道ID不正確，終止🚫程式，請參考Log資訊獲得詳細錯誤訊息")
+
+                # 這是Embed的內容，賦值給 dc_embed 方便判斷訊息是否發送，因為Embed一定有內容
+                # 所以沒有像圖片一樣需要判斷式
         dc_embed = await channel.send(embed=embed, view=button_view)
+
         if dc_embed:
-            cache_manager.dc_cache(MD5)
             logger.info(
-                f'發送到 {ive_members} 頻道 / Twitter帳號: {twitter_id} / MD5: {MD5} ─ OK'
+                f'發送到 {ive_members} 頻道 / Twitter帳號: {twitter_id} / MD5: {MD5} ─ 🆗'
             )
+            # 互斥鎖定，確保同時只會有一個執行緒在發送Discord訊息，避免同一條訊息被重複發送
+            await cache_manager.dc_cache_async(MD5)
         else:
-            logger.critical(f'Twitter帳號: {twitter_id}，Discord 消息發送失敗')
+            logger.critical(
+                f'發送到 {ive_members} 頻道 / Twitter帳號: {twitter_id} / MD5: {MD5}，⚠️ Discord 消息發送失敗'
+            )
 
     @ client.event
+    # Token順利登入後的主事件函式
     async def on_ready():
-        # 給自己知道目前使用的Discord Token登入機器人的身份
+        # 給自己知道目前使用哪一個 Discord Token 來登入機器人的身分
         print(
             f"\033[90m{await get_formatted_current_time()}\033[0m",
             "\033[38;2;255;0;85m目前登入身份 --> \033[0m",
             f"\033[38;2;255;140;26m{client.user}\033[0m"
         )
-        # Discord 機器人狀態
+        # 設定Discord 機器人狀態，詳細參考 https://discordpy.readthedocs.io/en/stable/api.html
         await client.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.listening,
-                name="Accendio"
+                name="RESET ‐ IVE SWITCH"
             )
         )
+        logger.info("Discord is ready!")
+        # 第一次啟動會先跑一次主函式，之後就不會再跑了，除非重新啟動程式
         await send_embed()
+        # 主檢測循環
+        while True:
+            await send_embed()
+            # 主檢測循環，時間調整(秒為單位)
+            await asyncio.sleep(1009)
 
     @client.command()
     async def ping(ctx):
         await ctx.reply(f'Ping is **{round(client.latency * 1000)}** ms')
 
+    # 定義Embed和訊息的主函式
     @client.event
-    async def send_embed():
+    async def send_embed(twitter_dict=None):
+        # 來自API_Twitter處理的字典資料，嘗試讀取本地 assets/Twitter_dict.pkl 字典
         try:
+            # 如果讀取成功 把字典物件賦予給 twitter_dict value
             twitter_dict = DCBot_Twitter.load_data_concurrently()
         except FileNotFoundError as e:
             logger.error(e)
         except ValueError as e:
             logger.error(e)
 
-        for MD5, values in twitter_dict.items():
-            if len(values) == 9:
-                twitter_author, twitter_link, twitter_entry, post_time, system_time, img_count, twitter_all_img, avatar_link, ive_members = values
+        if twitter_dict is None:
+            logger.critical("嘗試檢查資料庫是否存在或已經損毀")
+            raise ("PKL 資料庫遺失或資料不正確")
 
+        # 迴圈讀取 twitter_dict value {MD5:values}
+        for MD5, values in twitter_dict.items():
+            # 訊息尚未被Discord發送成功前，字典 values 會有9個值
+            if len(values) == 9:
+                # ☹︎ Value system_time 暫時沒想到用在哪裡，先當佔位變數 這是有序的 [List] 必須保持每個變數的位置和功能
+                # 定義 9 個不同的函數解包字典 values 除了int(img_count)，其餘都是 string type
+                twitter_author, twitter_link, twitter_entry, post_time, system_time, img_count, twitter_all_img, avatar_link, ive_members = values
+                # 透過Slice string 網址得到 英文帳號名 和 作者原始 Twitter 主頁，再賦予給區域變數
                 twitter_id = twitter_link[20:-27]
                 author_link = twitter_link[:-27]
+                # Embed上自訂的圖示，字典查詢使用
                 minive_link = DCBot_Twitter.get_minive_link(ive_members)
                 channel_id = DCBot_Twitter.channel_id(ive_members)
 
+                # client.get_channel 是 Discord python 規定語法
                 channel = client.get_channel(channel_id)
 
+                # 創立一個Embed物件用來顯示推特訊息內容，物件賦予給 embed value
                 embed = discord.Embed(
                     title='**' + twitter_author + '**',
                     url=author_link,
-                    color=0xed68a6
+                    # Embed顏色設定，只能使用16進製的RGB值
+                    color=0xbd9be0
                 )
 
                 embed.set_author(
@@ -210,31 +276,41 @@ def discord_twitter():
                     icon_url=minive_link,
                 )
 
+                # Embed 的主內容區，我填充了Twitter貼文內容
                 embed.add_field(
-                    name='　',
+                    name='　',  # 空白字元，避免顯示成一行
                     value=twitter_entry,
                     inline=False,
                 )
 
+                # Embed 的右上角小圖片區
                 embed.set_thumbnail(url=avatar_link)
 
+                # Embed 的右下角時間區，使用 datetime module 格式化時間
+                # Embed 的時間要求要使用 datetime 物件傳遞值不能使用 string 會報錯
                 embed.timestamp = datetime.strptime(
                     post_time, '%Y/%m/%d %H:%M:%S'
                 )
-
-                embed.set_footer(text='🅼🅸🆃 © 2024 ᴏᴍᴇɴʙɪʙɪ    🖼️ ' + str(img_count),
+                # Embed 的頁尾區，顯示圖片數量，版權資訊
+                embed.set_footer(text='🅼🅸🆃  © 2024 𝐨𝐦𝐞𝐧𝐛𝐢𝐛𝐢    🖼️ ' + str(img_count),  # 注意只支持string格式，因此 img_count 要轉換為string
+                                 # 這是Embed的頁尾小圖示，這邊使用 https://yesicon.app/skill-icons/twitter MIT © 圖庫的圖示
+                                 # 圖床是臺灣 https://meee.com.tw/ ⓒ Meee 2023 版權所有
                                  icon_url='https://i.meee.com.tw/caHwoj6.png')
 
+                # 創建一個按鈕此處是放在Embed的下方，按鈕設定為超連結按鈕
+                # 連結指向原始貼文連結，詳細看 :133 class ButtonView
                 button_view = ButtonView(url=twitter_link)
 
+                # 異步傳遞 value 給 send_discord_message 函數
+                # 這邊注意 img_count 要使用 int 型態傳遞，以利後續計算
                 await send_discord_message(channel, ive_members, embed, button_view, twitter_id, twitter_all_img, MD5, int(img_count))
-            else:
-                logger.info(f"此訊息: {MD5} 已經發送過不再次發送")
 
     try:
+        # 執行 Discord bot 程式
         client.run(DCBot_Twitter.load_DC_token())
     except ValueError as e:
         logger.error(e)
+        raise ('請檢查 config 中 .env Discord_TOKEN 是否正確!')
 
 
 if __name__ == '__main__':
