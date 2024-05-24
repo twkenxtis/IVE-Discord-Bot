@@ -6,8 +6,9 @@ import hashlib
 import json
 import logging
 import os
-import re
 import pickle
+import re
+import time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -17,10 +18,10 @@ from xml.etree.ElementTree import Element
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
-from custom_log import logger_API_Twitter
-from http_utility import HttpRequester
-from ive_hash_tag import match_tags
-from timezone import TimeZoneConverter, get_formatted_current_time
+from src.custom_log import logger_API_Twitter
+from src.http_utility import HttpRequester
+from src.ive_hash_tag import match_tags
+from src.timezone import TimeZoneConverter, get_formatted_current_time
 
 from aiocache import cached, Cache
 # aiocache - Apache License 2.0
@@ -83,7 +84,7 @@ class TwitterHandler(object):
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -181,9 +182,8 @@ class TwitterHandler(object):
             raise ValueError
         try:
             # 處理 Twitter 圖片描述
-            twitter_imgs_description, twitter_description_imgs_count = (
-                await TwitterHandler._process_tweet_images(self.description)
-            )
+            twitter_imgs_description, twitter_description_imgs_count = TwitterHandler._process_tweet_images(
+                self.description)
         except BaseException as e:
             logger.error(f"Error processing tweet images: {e}")
             raise BaseException(
@@ -202,8 +202,8 @@ class TwitterHandler(object):
             self.author_avatar_link
         )
 
-    @staticmethod
-    async def _process_orig_imgs(twitter_imgs_description: List[str]) -> List[str]:
+    @ staticmethod
+    def _process_orig_imgs(twitter_imgs_description: List[str]) -> List[str]:
         # 檢查傳入值是否為 list 型別
         if not isinstance(twitter_imgs_description, list):
             logger.error(f"{twitter_imgs_description} 傳入值必須是 list 型別")
@@ -216,7 +216,7 @@ class TwitterHandler(object):
 
     @ staticmethod
     @ lru_cache(maxsize=None)
-    async def _process_tweet_images(description: str) -> Tuple[str, int]:
+    def _process_tweet_images(description: str) -> Tuple[str, int]:
 
         replace_qp_url = []
 
@@ -226,7 +226,7 @@ class TwitterHandler(object):
         replace_qp_url.extend(TwitterHandler.PATTERN_mp4.findall(description))
 
         # 處理圖片和影片的URL列表
-        twitter_imgs_description = await TwitterHandler._process_orig_imgs(
+        twitter_imgs_description = TwitterHandler._process_orig_imgs(
             replace_qp_url)
 
         # 計算圖片和影片的數量
@@ -440,8 +440,9 @@ class TwitterHandler(object):
         else:
             # 開發者模式開啟 用打印的方式提醒開發者
             print(
-                '\033[38;2;255;230;128m開發者模式開啟，將存到字典，已經跳過\033[0m',
-                '\033[38;2;230;230;0m發文 \033[0m\033[38;5;99m24\033[0m \033[38;2;230;230;0m小時內的限製\033[0m'
+                '\033[38;2;255;230;128m開發者模式開啟，將存到字典，'
+                '已經跳過\033[0m\033[38;2;230;230;0m發文',
+                '\033[0m\033[38;5;99m24\033[0m \033[38;2;230;230;0m小時內的限製\033[0m'
             )
             await self.Twitter_Dict_Manager.update_twitter_dict({MD5: tuple_of_dict})
 
@@ -455,29 +456,35 @@ class TwitterHandler(object):
         async def load_from_json(cls) -> None:
             json_file = os.path.abspath(
                 os.path.join(
-                    os.path.dirname(
-                        __file__), "..", "assets", "Twitter_dict.json"
+                    os.path.dirname(__file__),
+                    "..", "assets", "Twitter_dict.json"
                 )
             )
-            # 檢查文件是否存在且文件大小不為零
-            if os.path.exists(json_file) and os.path.getsize(json_file) > 0:
-                async with aiofiles.open(json_file, "r") as j:
-                    file_content = await j.read()
-                    # 如果文件內容不為空，則使用 orjson 加載 JSON 數據
-                    cls.twitter_dict = orjson.loads(
-                        file_content) if file_content else {}
-            else:
-                # 如果文件不存在或為空，則初始化為空字典
-                cls.twitter_dict = {}
-                pass
+            while True:
+                # 檢查文件是否存在且文件大小不為零
+                if os.path.exists(json_file) and os.path.getsize(json_file) > 0:
+                    try:
+                        async with aiofiles.open(json_file, "r") as j:
+                            file_content = await j.read()
+                            # 如果文件內容不為空，則使用 orjson 加載 JSON 數據
+                            cls.twitter_dict = orjson.loads(
+                                file_content
+                            )
+                        break  # 如果成功加載數據，跳出循環
+                    except orjson.JSONDecodeError as e:
+                        logger.info(f"JSON 解碼錯誤: {e}")
+                        time.sleep(2.5)
+                    except Exception as e:
+                        logger.info(f"其他錯誤: {e}")
+                        time.sleep(2.5)
 
         @classmethod
         async def save_to_json(cls) -> None:
             try:
                 json_file = os.path.abspath(
                     os.path.join(
-                        os.path.dirname(
-                            __file__), "..", "assets", "Twitter_dict.json"
+                        os.path.dirname(__file__),
+                        "..", "assets", "Twitter_dict.json"
                     )
                 )
             except FileNotFoundError:
@@ -490,19 +497,39 @@ class TwitterHandler(object):
             formatted_json_data = json.dumps(json.loads(json_data), indent=4)
 
             # 保存數據到 pkl 文件
-            cls.save_to_pkl(cls.twitter_dict)
+            cls.save_to_pkl_with_retry(cls.twitter_dict)
 
             # 將格式化後的 JSON 寫入文件
             async with aiofiles.open(json_file, "w") as j:
                 await j.write(formatted_json_data)
 
         @classmethod
+        def save_to_pkl_with_retry(cls, data: dict) -> None:
+            max_retries = 26
+            retry_count = 0
+            retry_wait_time = 0.5
+
+            while retry_count < max_retries:
+                try:
+                    cls.save_to_pkl(data)
+                    return  # 如果保存成功，直接返回
+                except PermissionError:
+                    logger.info(
+                        f"PermissionError: 檔案被佔用，重試中... ({retry_count + 1}/{max_retries})"
+                    )
+                    retry_count += 1
+                    time.sleep(retry_wait_time)
+            else:
+                logger.error(f"無法儲存文件，已達最大重試次數：{max_retries}")
+                raise ("無法保存數據到 PKL 文件，請檢查文件是否被其他程序使用")
+
+        @classmethod
         def save_to_pkl(cls, data: dict) -> None:
             try:
                 pkl_file = os.path.abspath(
                     os.path.join(
-                        os.path.dirname(
-                            __file__), "..", "assets", "Twitter_dict.pkl"
+                        os.path.dirname(__file__),
+                        "..", "assets", "Twitter_dict.pkl"
                     )
                 )
             except FileExistsError:
@@ -606,9 +633,3 @@ class start_API_Twitter:
         except AttributeError as e:
             logger.error(f"ERROR: {e}")
             raise AttributeError("Error processing RSS feed")
-
-
-if __name__ == "__main__":
-
-    url = ""
-    asyncio.run(start_API_Twitter(url).get_response())
