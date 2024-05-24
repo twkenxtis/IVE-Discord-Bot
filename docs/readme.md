@@ -62,18 +62,18 @@ vim Discord.py
   更改 `config/.env` 中的 RSSHUB URL 為您自己的RSSHUB URL地址，
   將 `config/.env` 中的 Discord Token 更改為您自己的
   
-  例如，我的 RSSHUB 運行在 http://127.0.0.1:1200
+  例如，我的 RSSHUB 運行在 http://127.0.0.1:1200 我想要獲取Twitter用戶媒體
 
   ```
   Discord_TOKEN = JcJbLXfJHU2fpi0PjZo3BdfBUEi4eydqb3u89Jmqsr1msxXSFkviYDlEyuZ02SrdSDSShfEY
-  RSS_HUB_URL = http://127.0.0.1:1200/
+  RSS_HUB_URL = http://127.0.0.1:1200/twitter/media/
   ```
 
   or
 
   ```
   Discord_TOKEN=JcJbLXfJHU2fpi0PjZo3BdfBUEi4eydqb3u89Jmqsr1msxXSFkviYDlEyuZ02SrdSDSShfEY
-  RSS_HUB_URL=http://127.0.0.1:1200/
+  RSS_HUB_URL=http://127.0.0.1:1200/twitter/media/
   ```
 
 ### 開始運作機器人!
