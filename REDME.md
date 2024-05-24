@@ -68,18 +68,18 @@ For example:
   change to your own rsshub url in `config/.env` ,
   chaneg to your own Discord Token in `config/.env`
   
-  For Example my RSSHUB is runnung on http://127.0.0.1:1200
+  For Example my RSSHUB is runnung on http://127.0.0.1:1200/ I wabt got Twitter user media
   
   ```
   Discord_TOKEN = JcJbLXfJHU2fpi0PjZo3BdfBUEi4eydqb3u89Jmqsr1msxXSFkviYDlEyuZ02SrdSDSShfEY
-  RSS_HUB_URL = http://127.0.0.1:1200/
+  RSS_HUB_URL = http://127.0.0.1:1200/twitter/media/
   ```
 
   or
 
   ```
   Discord_TOKEN=JcJbLXfJHU2fpi0PjZo3BdfBUEi4eydqb3u89Jmqsr1msxXSFkviYDlEyuZ02SrdSDSShfEY
-  RSS_HUB_URL=http://127.0.0.1:1200/
+  RSS_HUB_URL=http://127.0.0.1:1200/twitter/media/
   ```
 
 ### Getting Start running BOT!
