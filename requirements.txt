@@ -1,6 +1,6 @@
 aiohttp
-aiofiles
 aiocache
+aiofiles
 discord
 discord-py-interactions
 fake-useragent
@@ -10,6 +10,7 @@ httpx
 loguru
 nest_asyncio
 orjson
+packaging
 pynacl
 requests
 toml
