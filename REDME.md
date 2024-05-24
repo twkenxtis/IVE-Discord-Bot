@@ -1,15 +1,20 @@
 # A fully custom Discord Bot for IVE
 
+## IVE 的完全客製化 Discord 機器人
+  [繁體中文版](https://github.com/twkenxtis/IVE-Discord-Bot/tree/main/docs)
 
 Support **Python 3.10 - 3.12**
 
 # How to setup :
+
 - Setp 1
+
 venv (optional)
 ```
 python3 -m venv path/to/venv
 source path/to/venv/bin/activate
 ```
+
 - Setp 2
 ```
 git clone https://github.com/twkenxtis/IVE-Discord-Bot
@@ -60,11 +65,10 @@ For example:
   vim config/.env
   ```
   
-  change to your own rsshub url in `config/.env`
+  change to your own rsshub url in `config/.env` ,
   chaneg to your own Discord Token in `config/.env`
   
   For Example my RSSHUB is runnung on http://127.0.0.1:1200
-  I want to get twitter media then limit querry string to 1 post response
   
   ```
   Discord_TOKEN = JcJbLXfJHU2fpi0PjZo3BdfBUEi4eydqb3u89Jmqsr1msxXSFkviYDlEyuZ02SrdSDSShfEY
@@ -78,9 +82,9 @@ For example:
   RSS_HUB_URL=http://127.0.0.1:1200/
   ```
 
-### Getting Start!
+### Getting Start running BOT!
 
-  - Setp4 : run Discord BOT first
+- Setp 5 : Run Discord BOT first
   
 ``` 
 cd src 
@@ -88,7 +92,7 @@ python3 Discord.py
 ```
     
     
-  - Step 5 start main.py
+- Step 6 start main.py
   
 ```
 python3 main.py
@@ -96,7 +100,7 @@ python3 main.py
   
 
 # How it works?
-GET request from [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic process send to Discord channel
+GET request from [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some magic send to Discord channel
 - What is RSSHUB?
 > **I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)**
 
