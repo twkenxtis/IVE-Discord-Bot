@@ -48,13 +48,19 @@ class Try_file:
             with open(PKL_PATH, "wb") as f:
                 logger.info(f"{PKL_PATH} 不存在，已初始化空字典建立")
                 pickle.dump({}, f)
-        if not os.path.exists(JSON_PATH):
             with open(JSON_PATH, "w") as f:
                 logger.info(f"{JSON_PATH} 不存在，已初始化空字典建立")
                 json.dump({}, f)
         if not os.path.exists(LOGS_DIR):
             os.makedirs(LOGS_DIR)
             logger.info(f"日誌檔案夾 {LOGS_DIR} 不存在，已建立")
+
+        try:
+            with open(JSON_PATH, "r") as j:
+                json.load(j)
+        except json.decoder.JSONDecodeError:
+            with open(JSON_PATH, "w") as j:
+                json.dump({}, j)
 
     def check_dependencies(self):
         os.chdir(os.path.dirname(__file__))
