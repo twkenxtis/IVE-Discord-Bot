@@ -80,7 +80,7 @@ class TwitterHandler(object):
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -150,7 +150,7 @@ class TwitterHandler(object):
 
     async def _process_rss_entry(
         self, rss_entry: Element
-    ) -> Union[Tuple[feedparser.FeedParserDict, str, str]:, None]:
+    ) -> Union[Tuple[feedparser.FeedParserDict, str, str], None]:
         try:
             # 將RSS中的發布時間轉換為台灣時區(str)非物件
             self.pub_date_tw = await TimeZoneConverter().convert_time(
