@@ -61,8 +61,8 @@ class DCBot_Twitter(object):
         except FileNotFoundError:
             raise
         except EOFError:
-            # 若讀寫 IO 打架就0.1秒無限重試
-            time.sleep(0.1)
+            # 若讀寫 IO 打架就 1秒 無限重試
+            time.sleep(1)
             DCBot_Twitter.load_data_concurrently()
 
     @staticmethod
