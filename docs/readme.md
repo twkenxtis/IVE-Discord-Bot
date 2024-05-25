@@ -94,7 +94,7 @@ python3 main.py
   
 
 # 工作原理？
-從 [**RSSHUB**](https://github.com/DIYgod/RSSHub) 收到 GET 請求，經過一些魔法後發送到 Discord 頻道
+對 [**RSSHUB**](https://github.com/DIYgod/RSSHub) 發送 GET 請求，經過一些魔法後發送到 Discord 頻道
 - 什麼是 RSSHUB？
 > **我正在使用 **RSSHUB** 作為我的核心請求 API，您可以選擇任何您想要的 RSS 服務（強烈推薦 [rsshub](https://github.com/DIYgod/RSSHub)）一個開源的 MIT 項目)**
 
