@@ -92,7 +92,7 @@ class CacheManager:
             self.json_cache[MD5].append(value)
             await self.save_cache()
         else:
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
             cache_manager.initialize_cache()
 
     # MD5 是字典中固定的Key 接收外部傳入的MD5值
