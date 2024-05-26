@@ -67,8 +67,8 @@ For example:
   vim .env
   ```
   
-  change to your own rsshub url in `config/.env` ,
-  chaneg to your own Discord Token in `config/.env`
+  change to your own rsshub url in `.env` ,
+  chaneg to your own Discord Token in `.env`
   
   For Example my RSSHUB is runnung on http://127.0.0.1:1200/ I wabt got Twitter user media
   
