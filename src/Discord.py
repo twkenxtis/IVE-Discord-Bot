@@ -307,8 +307,13 @@ def discord_twitter():
                 embed.timestamp = datetime.strptime(
                     post_time, '%Y/%m/%d %H:%M:%S'
                 )
+                
+                if twitter_all_img[(len(twitter_all_img) - 4):-1] == 'mp4':
+                    footer_icon = '🎬'
+                else:
+                    footer_icon = '🖼️'
                 # Embed 的頁尾區，顯示圖片數量，版權資訊
-                embed.set_footer(text='🅼🅸🆃  © 2024 𝐨𝐦𝐞𝐧𝐛𝐢𝐛𝐢    🖼️ ' + str(img_count),  # 注意只支持string格式，因此 img_count 要轉換為string
+                embed.set_footer(text=f'🅼🅸🆃  © 2024 𝐨𝐦𝐞𝐧𝐛𝐢𝐛𝐢    {footer_icon} ' + str(img_count),  # 注意只支持string格式，因此 img_count 要轉換為string
                                  # 這是Embed的頁尾小圖示，這邊使用 https://yesicon.app/skill-icons/twitter MIT © 圖庫的圖示
                                  # 圖床是臺灣 https://meee.com.tw/ ⓒ Meee 2023 版權所有
                                  icon_url='https://i.meee.com.tw/caHwoj6.png')
