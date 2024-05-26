@@ -62,7 +62,9 @@ For example:
 - Setp 4
  
   ```
-  vim config/.env
+  cd ../config
+  mv .env.example .env
+  vim .env
   ```
   
   change to your own rsshub url in `config/.env` ,
