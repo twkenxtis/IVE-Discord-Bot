@@ -254,7 +254,7 @@ def discord_twitter():
                 # 定義 9 個不同的函數解包字典 values 除了int(img_count)，其餘都是 string type
                 twitter_author, twitter_link, twitter_entry, post_time, system_time, img_count, twitter_all_img, avatar_link, ive_members = values
                 # 透過Slice string 網址得到 英文帳號名 和 作者原始 Twitter 主頁，再賦予給區域變數
-                twitter_id = twitter_link[20:-27]
+                twitter_id = twitter_link[14:-27]
                 author_link = twitter_link[:-27]
                 # Embed上自訂的圖示，字典查詢使用
                 minive_link = DCBot_Twitter.get_minive_link(ive_members)
