@@ -322,7 +322,7 @@ class TwitterHandler(object):
         # 集合推導，提取 hashtag
         hash_tags = {H for H in rss_title.split() if H.startswith("#")}
 
-        # 呼叫 match_tags 字典函數，傳入 hashtags 列表用來匹配
+        # 呼叫 match_tags 字典函數，傳入 hashtags 集合用來匹配
         matched_values = match_tags(hash_tags)
 
         # 處理 matched_values 的情況
