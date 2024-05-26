@@ -56,7 +56,9 @@ vim Discord.py
   - 步驟 4
  
   ```
-  vim config/.env
+  cd ../config
+  mv .env.example .env
+  vim .env
   ```
 
   更改 `config/.env` 中的 RSSHUB URL 為您自己的RSSHUB URL地址，
