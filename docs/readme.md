@@ -24,7 +24,7 @@ pip3 install -r requirements.txt
 ```
 cd assets
 
-mv Twitter_dict.json.example Twitter_dict.json \
+mv Twitter_dict.json.example Twitter_dict.json
 mv Twitter_dict.pkl.example Twitter_dict.pkl
 ```
 
