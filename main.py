@@ -94,20 +94,32 @@ class RSS_List_Pop_up:
         pass
 
     def load_RSSHUB_url(self) -> str:
-        # 獲取當前腳本所在目錄
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        # 打開.env文件
-        try:
-            with open(os.path.join(script_dir, 'config', '.env'), 'r') as env_file:
-                # 逐行讀取文件
-                for line in env_file:
-                    # 如果該行以'RSS_HUB_URL'開頭
-                    if line.startswith('RSS_HUB_URL'):
-                        # 返回等號後的值，並去除空格
-                        return line.split('=')[1].strip()
+        def recursive_search(lines: list[str]) -> str:
 
+            if not lines:
                 logger.critical("無法於環境變數文件找到 RSS_HUB_URL 值")
                 raise ValueError("請確認.env文件是否包含 RSS_HUB_URL 欄位")
+
+            # 每次只判斷傳遞的第一行，去除空格
+            match [lines[0].strip()]:
+                # 判斷清單中的第一個元素是否為 RSS_HUB_URL 開頭
+                case [value] if value.startswith('RSS_HUB_URL'):
+                    # 記得要去掉前後的空白字元防止錯誤
+                    # 用字串方法處理值，返回第一個匹配值給 value token
+                    rss_hub_url = value.split('=', 1)[1].strip()
+                    return rss_hub_url
+                case _:
+                    # 遞迴調用傳入值，字串方法每次檢查一行，直到沒有值
+                    return recursive_search(lines[1:])
+
+        try:
+            # 獲取當前腳本所在目錄的絕對路徑
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            # 打開.env文件作為讀取模式
+            with open(os.path.join(script_dir, '..', 'config', '.env'), 'r') as env_file:
+                # 使用 readlines() 函式逐行讀取文件中的內容，並將其傳遞給遞迴函式 recursive_search
+                return recursive_search(env_file.readlines())
+        # 如果文件未找到，捕獲 FileNotFoundError 並拋出錯誤消息
         except FileNotFoundError:
             logger.error("找不到.env文件，請重新建立環境變數檔案")
             raise FileNotFoundError("找不到.env文件，請重新建立環境變數檔案")
@@ -131,7 +143,7 @@ class RSS_List_Pop_up:
 
             asyncio.run(start_API_Twitter(url).get_response())
             # 決定下次迭代間的等待時間
-            wait_time = random.randint(3, 47)
+            wait_time = random.randint(13, 47)
             sys.stdout.write("\r")  # 返回行首，用於在同一行更新文本
             print(f"\x1B[38;2;255;77;166m下次請求將在\033[0m"
                   f"\033[38;2;230;230;0m {wait_time} \033[0m"
