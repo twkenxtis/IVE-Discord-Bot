@@ -20,6 +20,16 @@ pip3 install -r requirements.txt
 
 - 步驟 3
   
+將副檔名.example去除
+```
+cd assets
+
+mv Twitter_dict.json.example Twitter_dict.json \
+mv Twitter_dict.pkl.example Twitter_dict.pkl
+```
+
+- 步驟 4
+  
 ```
 cd src 
 vim Discord.py 
@@ -53,7 +63,7 @@ vim Discord.py
               "GROUPS": "1157550597248135208"
           }
       
-  - 步驟 4
+  - 步驟 5
  
   ```
   cd ../config
@@ -80,7 +90,7 @@ vim Discord.py
 
 ### 開始運作機器人!
 
-- 步驟 5 : 首先運行 Discord BOT
+- 步驟 6 : 首先運行 Discord BOT
   
 ``` 
 cd src 
@@ -88,7 +98,7 @@ python3 Discord.py
 ```
     
     
-- 步驟 6 運行 main.py
+- 步驟 7 運行 main.py
   
 ```
 python3 main.py
