@@ -51,9 +51,9 @@ logging.basicConfig(level=logging.INFO)
 class TwitterHandler(object):
 
     # 開啟/關閉 24 小時開發模式
-    Dev_24hr_switch = True  # Default is False
+    Dev_24hr_switch = False  # Default is False
     if Dev_24hr_switch is True:
-        # 開發者模式開啟 用打印的方式提醒開發者
+        # 開發者模式開啟 用列印的方式提醒開發者
         print(
             '\033[38;2;255;230;128m開發者模式開啟，將存到字典，'
             '已經跳過\033[0m\033[38;2;230;230;0m發文',
