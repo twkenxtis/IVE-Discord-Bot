@@ -115,3 +115,6 @@ Send GET request for [**RSSHUB**](https://github.com/DIYgod/RSSHub) After some m
 - What is RSSHUB?
 > **I'm using **RSSHUB** for my core request API you can choese whatever you want RSS service (Highly recommended [rsshub](https://github.com/DIYgod/RSSHub)) A open source MIT project)**
 
+
+### Update Version
+⚠️ Before executing the re-pull, please make sure to back up all data located in assets!
