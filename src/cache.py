@@ -24,9 +24,11 @@ class CacheManager:
         self.json_cache = {}
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         self.file_path_pkl = os.path.join(
-            self.script_dir, '..', 'assets', 'Twitter_dict.pkl')
+            self.script_dir, '..', 'assets', 'Twitter_dict.pkl'
+        )
         self.file_path_json = os.path.join(
-            self.script_dir, '..', 'assets', 'Twitter_dict.json')
+            self.script_dir, '..', 'assets', 'Twitter_dict.json'
+        )
         self.loop = asyncio.get_event_loop()
         # 允許 nest_asyncio 嵌套的事件循環
         nest_asyncio.apply(self.loop)
@@ -34,6 +36,7 @@ class CacheManager:
         self.json_len = None
 
     async def load_cache(self):
+        re_try = 0
         while True:
             if os.path.exists(self.file_path_pkl):
                 async with aiofiles.open(self.file_path_pkl, 'rb') as pkl_file:
@@ -42,12 +45,15 @@ class CacheManager:
                         self.pkl_cache = pickle.loads(content)
                         break
                     except EOFError:
-                        await asyncio.sleep(0.1)
-                    except Exception as e:
-                        await asyncio.sleep(0.1)
+                        await asyncio.sleep(0.05)
+                    except Exception:
+                        await asyncio.sleep(0.05)
             else:
+                re_try + 1
                 print("Error: 找不到 Twitter_dict.pkl 文件，重試中...")
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(1)
+                if re_try == 10:
+                    break
 
         if os.path.exists(self.file_path_json):
             try:
@@ -58,9 +64,10 @@ class CacheManager:
                     await json_file.write(json.dumps({}))
                     pass
         else:
-            # TODO: 之後再想資料庫如果被刪除怎麼處理
             logger.error(
-                f"Twitter_dict.pkl not found: {self.file_path_pkl} 或 Twitter_dict.json not found: {self.file_path_json}")
+                f"Twitter_dict.pkl not found: {self.file_path_pkl}\n OR Twitter_dict.json not found: {self.file_path_json}"
+            )
+            raise FileNotFoundError("OOPS ! File not found! Can't start!")
 
     async def save_cache(self):
         # 異步存入緩存數據
@@ -92,7 +99,7 @@ class CacheManager:
             self.json_cache[MD5].append(value)
             await self.save_cache()
         else:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
             cache_manager.initialize_cache()
 
     # MD5 是字典中固定的Key 接收外部傳入的MD5值
