@@ -12,6 +12,7 @@ import time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+from io import BytesIO
 from functools import lru_cache
 from typing import Tuple, Any, Dict, List, AsyncGenerator, Iterable, Optional, Union
 from xml.etree.ElementTree import Element
@@ -50,9 +51,9 @@ logging.basicConfig(level=logging.INFO)
 class TwitterHandler(object):
 
     # 開啟/關閉 24 小時開發模式
-    Dev_24hr_switch = False  # Default is False
+    Dev_24hr_switch = True  # Default is False
     if Dev_24hr_switch is True:
-        # 開發者模式開啟 用列印的方式提醒開發者
+        # 開發者模式開啟 用打印的方式提醒開發者
         print(
             '\033[38;2;255;230;128m開發者模式開啟，將存到字典，'
             '已經跳過\033[0m\033[38;2;230;230;0m發文',
@@ -87,7 +88,7 @@ class TwitterHandler(object):
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -400,43 +401,39 @@ class TwitterHandler(object):
         # 把Twitter 貼文網址 MD5當字典的 Key
         MD5 = hashlib.md5(rss_entry.link.encode("utf-8")).hexdigest()
 
-        async def time_offset(match_set_md5=None):
-            match_set_md5 = set()
-
+        async def time_offset(match_set_md5=set()):
             # pub_data_tw 是個字串非物件 EX: 2024/05/20 06:58:33
-            match len(pub_date_tw):
-                # 19 是字典索引value[4](pub_date_tw)的長度
-                case 19:
-                    time_diffs = TimeDifferenceCalculator.calculate_in_parallel([
-                                                                                pub_date_tw])
-                    match len(time_diffs):
-                        case 0:
-                            # 超過 24 hr
-                            pass
-                        case _ if time_diffs:
-                            # 將貼文符合條件 24小時內 的貼文MD5存入set
-                            match_set_md5.add(MD5)
-                            # 以MD5作為字典的{Key: tuple} 使用 update_twitter_dict 異步寫入資料到 Twitter_dict 字典中
-                            await self.Twitter_Dict_Manager.update_twitter_dict({MD5: tuple_of_dict})
-                # 如果 len(pub_date_tw) != 19 的異常處理區域
-                case _:
-                    match isinstance(pub_date_tw, str):
-                        case True:
-                            logger.warning(
-                                f"pub_date_tw: {pub_date_tw} 資料型態正確，檢查是否時間格式錯誤，無法正確計算時間差異")
-                            raise ValueError(
-                                f"pub_date_tw: {pub_date_tw} 字串時間格式錯誤! ")
-                        case False:
-                            logger.warning(
-                                f"pub_date_tw: {pub_date_tw} 格式錯誤，無法正確計算時間差異")
-                            raise ValueError(
-                                f"pub_date_tw: {pub_date_tw} 格式錯誤")
-                        case _:
-                            logger.error(
-                                f"pub_date_tw 有異常 {pub_date_tw} | {type(pub_date_tw)} | {len(pub_date_tw)} 無法正確計算時間差異")
-                            raise ValueError(
-                                f"pub_date_tw: {pub_date_tw} 異常，無法正確計算時間差異")
-
+            # length of 19 是字典索引value[4] -> (pub_date_tw) 的長度
+            if len(pub_date_tw) == 19:
+                time_diffs = TimeDifferenceCalculator.calculate_in_parallel([
+                                                                            pub_date_tw])
+                match len(time_diffs):
+                    case 0:
+                        # logger.info("此RSS貼文超過24小時，不存到字典，可以由開發者模式控制是否開啟")
+                        pass
+                    case _ if time_diffs:
+                        # 將貼文符合條件 24小時內 的貼文MD5存入set
+                        match_set_md5.add(MD5)
+                        # 以MD5作為字典的{Key: tuple} 使用 update_twitter_dict 異步寫入資料到 Twitter_dict 字典中
+                        await self.Twitter_Dict_Manager.update_twitter_dict({MD5: tuple_of_dict})
+            # 如果 len(pub_date_tw) != 19 的異常處理區域
+            else:
+                match isinstance(pub_date_tw, str):
+                    case True:
+                        logger.warning(
+                            f"pub_date_tw: {pub_date_tw} 資料型態正確，檢查是否時間格式錯誤，無法正確計算時間差異")
+                        raise ValueError(
+                            f"pub_date_tw: {pub_date_tw} 字串時間格式錯誤! ")
+                    case False:
+                        logger.warning(
+                            f"pub_date_tw: {pub_date_tw} 格式錯誤，無法正確計算時間差異")
+                        raise ValueError(
+                            f"pub_date_tw: {pub_date_tw} 格式錯誤")
+                    case _:
+                        logger.error(
+                            f"pub_date_tw 有異常 {pub_date_tw} | {type(pub_date_tw)} | {len(pub_date_tw)} 無法正確計算時間差異")
+                        raise ValueError(
+                            f"pub_date_tw: {pub_date_tw} 異常，無法正確計算時間差異")
         # :56 可以再類方法自行切換開發者模式跳過時間差計算
         if TwitterHandler.Dev_24hr_switch is False:
             # 異步執行時間差計算
@@ -446,23 +443,33 @@ class TwitterHandler(object):
 
     class Twitter_Dict_Manager:
 
-        # 創建一個類別屬性，用於存儲 Twitter 相關的字典數據
+        # 存儲 Twitter 相關的字典數據
         twitter_dict = {}
+
+        # 定義 JSON 文件的路徑
+        json_file = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..", "assets", "Twitter_dict.json"
+            )
+        )
+
+        # 定義 PKL 文件的路徑
+        pkl_file = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..", "assets", "Twitter_dict.pkl"
+            )
+        )
 
         @classmethod
         @cached(ttl=1200, cache=Cache.MEMORY)
         async def load_from_json(cls) -> None:
-            json_file = os.path.abspath(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    "..", "assets", "Twitter_dict.json"
-                )
-            )
             while True:
                 # 檢查文件是否存在且文件大小不為零
-                if os.path.exists(json_file) and os.path.getsize(json_file) > 0:
+                if os.path.exists(cls.json_file) and os.path.getsize(cls.json_file) > 0:
                     try:
-                        async with aiofiles.open(json_file, "r") as j:
+                        async with aiofiles.open(cls.json_file, "r") as j:
                             file_content = await j.read()
                             # 如果文件內容不為空，則使用 orjson 加載 JSON 數據
                             cls.twitter_dict = orjson.loads(
@@ -477,103 +484,100 @@ class TwitterHandler(object):
                         time.sleep(2.5)
 
         @classmethod
-        async def save_to_json(cls) -> None:
+        async def update_twitter_dict(cls, new_data: Dict[str, Any]) -> None:
+            # 更新 Twitter 字典數據
+            cls.twitter_dict.update(new_data)
+            # 非同步調用 save_to_json 方法將更新後的數據保存到 JSON 文件
+            await cls.try_json_and_pkl()
+
+        @classmethod
+        async def try_json_and_pkl(cls) -> None:
             try:
-                json_file = os.path.abspath(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "..", "assets", "Twitter_dict.json"
-                    )
-                )
+                cls.json_file
             except FileNotFoundError:
-                logger.error(f"json_file: {json_file} 文件不存在")
-                raise FileExistsError(f"json_file: {json_file} 文件不存在")
+                logger.error(f"json_file: {cls.json_file} 文件不存在")
+                raise FileExistsError(f"json_file: {cls.json_file} 文件不存在")
 
             try:
-                pkl_file = os.path.abspath(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "..", "assets", "Twitter_dict.pkl"
-                    )
-                )
+                cls.pkl_file
+                # 存入字典的主函式
+                await cls.save_to_json()
             except FileExistsError:
-                logger.error(f"pkl_file: {pkl_file} 文件不存在")
-                raise FileExistsError(f"pkl_file: {pkl_file} 文件不存在")
+                logger.error(f"pkl_file: {cls.pkl_file} 文件不存在")
+                raise FileExistsError(f"pkl_file: {cls.pkl_file} 文件不存在")
 
+        @classmethod
+        async def save_to_json(cls) -> None:
+
+            # 沒有寫文件鎖 直接暴力迴圈
             while True:
                 try:
-                    with open(pkl_file, "rb") as pkl:
+                    with open(cls.pkl_file, "rb") as pkl:
                         n = pickle.load(pkl)
                     break
                 except EOFError:
+                    logger.warning(
+                        f"pkl_file: {cls.pkl_file} 無法讀取，檔案案被佔用中，自動重試中..."
+                    )
+                    await asyncio.sleep(1)
                     await cls.save_to_json()
 
-            # n 是字典中的原始值
+            # n 是字典中所有鍵的原始值
             n = tuple(n.keys())
-
-            # i 是傳入值中的MD5
+            # i 是傳入新資料的逐個鍵值
             i = tuple(cls.twitter_dict.keys())
 
-            if not n == i:
+            if n != i:
                 # 使用 orjson 進行序列化
                 json_data = orjson.dumps(cls.twitter_dict).decode('utf-8')
                 # 使用 json 進行格式化輸出，以便於閱讀
-                formatted_json_data = json.dumps(
+                json_data = json.dumps(
                     json.loads(json_data), indent=4)
 
-                # 保存數據到 pkl 文件
-                cls.save_to_pkl_with_retry(cls.twitter_dict)
+                # 同步保存數據到 pkl 文件
+                await cls.save_to_pkl_with_retry(cls.twitter_dict)
 
-                # 將格式化後的 JSON 寫入文件
-                async with aiofiles.open(json_file, "w") as j:
-                    await j.write(formatted_json_data)
+                # 將格式化後的 JSON 異步寫入文件
+                async with aiofiles.open(cls.json_file, "w") as j:
+                    await j.write(json_data)
             else:
-                logger.info(
-                    f"{str(i).replace('(', '').replace(')', '')}\n以上數據已經是最新，不再次儲存")
+                logger.info("數據已經是最新，不再次儲存")
 
         @classmethod
-        def save_to_pkl_with_retry(cls, data: dict) -> None:
-            max_retries = 300
-            retry_count = 0
-            retry_wait_time = 0.1
+        async def save_to_pkl_with_retry(cls, data: dict, retry_count=0, max_retries=300) -> None:
 
             while retry_count < max_retries:
                 try:
-                    cls.save_to_pkl(data)
+                    await cls.save_to_pkl(data)
                     return  # 如果保存成功，直接返回
                 except PermissionError:
                     logger.info(
                         f"PermissionError: 檔案被佔用，重試中... ({retry_count + 1}/{max_retries})"
                     )
                     retry_count += 1
-                    time.sleep(retry_wait_time)
+                    time.sleep(0.1)
             else:
                 logger.error(f"無法儲存文件，已達最大重試次數：{max_retries}")
-                raise ("無法保存數據到 PKL 文件，請檢查文件是否被其他程式使用")
+                raise ("無法保存數據到 PKL 文件，請檢查文件是否被其他程序使用")
 
         @classmethod
-        def save_to_pkl(cls, data: dict) -> None:
-            pkl_file = os.path.abspath(
-                os.path.join(
-                    os.path.dirname(__file__),
-                    "..", "assets", "Twitter_dict.pkl"
-                )
-            )
-            with open(pkl_file, "wb") as pkl:
-                pickle.dump(data, pkl)
-                logger.info("數據保存到PKL成功")
-
-        @classmethod
-        async def update_twitter_dict(cls, new_data: Dict[str, Any]) -> None:
-            # 更新類別屬性字典數據
-            cls.twitter_dict.update(new_data)
-            # 非同步調用 save_to_json 方法將更新後的數據保存到 JSON 文件
-            await cls.save_to_json()
+        async def save_to_pkl(cls, data: dict) -> None:
+            # 使用 aiofiles 開啟文件，以異步方式寫入二進位資料
+            async with aiofiles.open(cls.pkl_file, "wb") as pkl:
+                # 創建一個 BytesIO 物件，將資料暫存到內存中
+                bytes_io = BytesIO()
+                # 使用 pickle.dump() 將資料寫入 BytesIO 物件中
+                pickle.dump(data, bytes_io)
+                # 將 BytesIO 物件的指針移到開始位置，以便從頭讀取位元串
+                bytes_io.seek(0)
+                # 使用 await 將 BytesIO 中的位元串異步寫入到文件中
+                await pkl.write(bytes_io.read())
+            logger.info("數據保存到PKL成功")
 
 
 class TimeDifferenceCalculator:
 
-    # 類定義臺北時區
+    # 類定義台北時區
     TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
     # 使用靜態方法計算時間差，並使用 lru_cache 進行緩存以提高效率
