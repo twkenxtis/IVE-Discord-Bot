@@ -22,8 +22,17 @@ cd IVE-Discord-Bot
 pip3 install -r requirements.txt
 ```
 
-
 - Setp 3
+  
+Remove .example from the extension
+```
+cd assets
+
+mv Twitter_dict.json.example Twitter_dict.json
+mv Twitter_dict.pkl.example Twitter_dict.pkl
+```
+
+- Setp 4
   
 ```
 cd src 
@@ -59,7 +68,7 @@ For example:
           }
       
     
-- Setp 4
+- Setp 5
  
   ```
   cd ../config
@@ -86,7 +95,7 @@ For example:
 
 ### Getting Start running BOT!
 
-- Setp 5 : Run Discord BOT first
+- Setp 6 : Run Discord BOT first
   
 ``` 
 cd src 
@@ -94,7 +103,7 @@ python3 Discord.py
 ```
     
     
-- Step 6 start main.py
+- Step 7 start main.py
   
 ```
 python3 main.py
