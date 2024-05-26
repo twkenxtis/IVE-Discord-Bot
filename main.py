@@ -116,7 +116,7 @@ class RSS_List_Pop_up:
             # 獲取當前腳本所在目錄的絕對路徑
             script_dir = os.path.dirname(os.path.abspath(__file__))
             # 打開.env文件作為讀取模式
-            with open(os.path.join(script_dir, '..', 'config', '.env'), 'r') as env_file:
+            with open(os.path.join(script_dir, 'config', '.env'), 'r') as env_file:
                 # 使用 readlines() 函式逐行讀取文件中的內容，並將其傳遞給遞迴函式 recursive_search
                 return recursive_search(env_file.readlines())
         # 如果文件未找到，捕獲 FileNotFoundError 並拋出錯誤消息
