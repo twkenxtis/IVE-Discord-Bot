@@ -100,3 +100,6 @@ python3 main.py
 - 什麼是 RSSHUB？
 > **我正在使用 **RSSHUB** 作為我的核心請求 API，您可以選擇任何您想要的 RSS 服務（強烈推薦 [rsshub](https://github.com/DIYgod/RSSHub)）一個開源的 MIT 項目)**
 
+
+### 更新版本
+⚠️ 執行重新拉取之前請先備份位於 assets 的所有數據!
