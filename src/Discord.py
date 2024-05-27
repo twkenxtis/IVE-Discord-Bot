@@ -117,7 +117,8 @@ class DCBot_Twitter(object):
             "liz.yeyo": "https://i.imgur.com/kjxBjbj.png",
             "LEESEO": "https://i.imgur.com/eBFe7Ge.png",
             "eeseooes": "https://i.imgur.com/eBFe7Ge.png",
-            "GROUPS": "https://i.imgur.com/WnkrrJS.png"
+            "GROUPS": "https://i.imgur.com/WnkrrJS.png",
+            "IVE_Only": "https://i.imgur.com/WnkrrJS.png"
         }
 
         # 因為 'async def send_embed' 會確保只有正確的傳入值所以不捕捉錯誤，直接 return value
@@ -139,7 +140,9 @@ class DCBot_Twitter(object):
             "liz.yeyo": "1142901102526869556",
             "LEESEO": "1142901201332097205",
             "eeseooes": "1142901201332097205",
-            "GROUPS": "1157550597248135208"
+            "GROUPS": "1157550597248135208",
+            "IVE_Only": "1142905266703192157"
+
         }
         # 因為 'async def send_embed' 會確保只有正確的傳入值所以不捕捉錯誤，直接 return value
         # 注意 return 值為字串，所以要用 str() 轉換成 int 類型，不然 Discord API 會拒絕並報錯
@@ -192,11 +195,15 @@ def discord_twitter():
         match = re.search(r'https://youtu\S*', twitter_entry)
         try:
             if int(img_count) > 0:
-                # 這是一般訊息的內容 使用 channel.send 我放在 Embed 程式碼的上方讓照片先發送
-                await channel.send(twitter_all_img)
+                if match:
+                    # 這是一般訊息內容 + 匹配到 YT 網址
+                    await channel.send(f'{twitter_all_img}  [ʏᴛ]({match.group(0)})')
+                else:
+                    # 這是一般訊息的內容 使用 channel.send 我放在 Embed 程式碼的上方讓照片先發送
+                    await channel.send(twitter_all_img)
             elif match:
                 # 如果 twitter_entry 有匹配到 youtube 網址就發送網址到訊息
-                await channel.send(match.group(0))
+                await channel.send(f'[ʏᴛ]({match.group(0)})')
         except AttributeError:
             logger.info("Twitter_dict.pkl 字典資訊處理成功，訊息準備發送前檢測到錯誤")
             logger.critical(
@@ -225,7 +232,7 @@ def discord_twitter():
     @ client.event
     # Token順利登入後的主事件函式
     async def on_ready():
-        # 給自己知道目前使用哪一個 Discord Token 來登入機器人的身分
+        # 給自己知道目前使用哪一個 Discord Token 來登入機器人的身份
         print(
             f"\033[90m{await get_formatted_current_time()}\033[0m",
             "\033[38;2;255;0;85m目前登入身份 --> \033[0m",
@@ -245,7 +252,7 @@ def discord_twitter():
         while True:
             await send_embed()
             # 主檢測循環，時間調整(秒為單位)
-            await asyncio.sleep(7)
+            await asyncio.sleep(0.1)
 
     @client.command()
     async def ping(ctx):
@@ -302,9 +309,20 @@ def discord_twitter():
                     case _:
                         footer_icon = '🖼️'
 
+                # 如果內文是轉推就提取轉推的帳號，並且刪除twitter_entry內的RT string
+                if twitter_entry.startswith('RT'):
+                    re_tweet = twitter_entry.strip().split('\n')[0]
+                    twitter_entry = re.sub(
+                        rf'{re_tweet}', ' \n',
+                        twitter_entry)
+                    # 重新slice給Discord當最終re_tweet value
+                    re_tweet = f' ↪  {re_tweet[3:]}'
+                else:
+                    re_tweet = '  '
+
                 # Embed 的主內容區，我填充了Twitter貼文內容
                 embed.add_field(
-                    name='　',  # 空白字元，避免顯示成一行
+                    name=re_tweet,
                     value=twitter_entry,
                     inline=False,
                 )
