@@ -88,7 +88,7 @@ class TwitterHandler(object):
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -160,7 +160,7 @@ class TwitterHandler(object):
         self, rss_entry: Element
     ) -> Union[Tuple[feedparser.FeedParserDict, str, str], None]:
         try:
-            # 將RSS中的發布時間轉換為台灣時區(str)非物件
+            # 將RSS中的發布時間轉換為臺灣時區(str)非物件
             self.pub_date_tw = await TimeZoneConverter().convert_time(
                 rss_entry.published
             )
@@ -175,6 +175,9 @@ class TwitterHandler(object):
         # 從 rss.entries 的描述中提取 Tweet post 的標題
         # 過濾條目中的圖片
         self.filter_entry = self.filter_entry_img(self.description)
+
+        # RSS_HUB issues fix 2024/05/27 (&nbsp; in description not every tweet)
+        self.filter_entry = re.sub(r'&nbsp;', ' ', self.filter_entry)
 
         try:
             if self.filter_entry is not None:
@@ -213,7 +216,7 @@ class TwitterHandler(object):
             logger.error(f"{twitter_imgs_description} 傳入值必須是 list 型別")
             raise TypeError("檢查 _process_tweet_images replace_qp_url value!")
 
-        # 如果符合條件，強制啟用 Twitter Querry string 的原始圖查詢獲得大圖連結
+        # 如果符合條件，強製啟用 Twitter Querry string 的原始圖查詢獲得大圖連結
         return [
             url + "&name=orig" if url.endswith("?format=jpg") else url for url in twitter_imgs_description
         ]
