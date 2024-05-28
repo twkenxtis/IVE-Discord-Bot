@@ -130,16 +130,16 @@ class DCBot_Twitter(object):
         channel_dict = {
             "GAEUL": "1142900837300043889",
             "fallingin__fall": "1142900837300043889",
-            "YUJIN": "1245000842944184420",
-            "_yujin_an": "1245000842944184420",
-            "REI": "1245000910204309586",
-            "reinyourheart": "1245000910204309586",
-            "WONYOUNG": "1245000951941693440",
-            "for_everyoung10": "1245000951941693440",
-            "LIZ": "1245000993394004009",
-            "liz.yeyo": "1245000993394004009",
-            "LEESEO": "1245001033151811614",
-            "eeseooes": "1245001033151811614",
+            "YUJIN": "1142900711315734599",
+            "_yujin_an": "1142900711315734599",
+            "REI": "1142900891393994782",
+            "reinyourheart": "1142900891393994782",
+            "WONYOUNG": "1142900973405229056",
+            "for_everyoung10": "1142900973405229056",
+            "LIZ": "1142901102526869556",
+            "liz.yeyo": "1142901102526869556",
+            "LEESEO": "1142901201332097205",
+            "eeseooes": "1142901201332097205",
             "GROUPS": "1157550597248135208",
             "IVE_Only": "1142905266703192157"
 
@@ -232,7 +232,7 @@ def discord_twitter():
     @ client.event
     # Token順利登入後的主事件函式
     async def on_ready():
-        # 給自己知道目前使用哪一個 Discord Token 來登入機器人的身分
+        # 給自己知道目前使用哪一個 Discord Token 來登入機器人的身份
         print(
             f"\033[90m{await get_formatted_current_time()}\033[0m",
             "\033[38;2;255;0;85m目前登入身份 --> \033[0m",
@@ -252,7 +252,7 @@ def discord_twitter():
         while True:
             await send_embed()
             # 主檢測循環，時間調整(秒為單位)
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(10)
 
     @client.command()
     async def ping(ctx):
@@ -290,7 +290,7 @@ def discord_twitter():
                 embed = discord.Embed(
                     title='**' + twitter_author + '**',
                     url=author_link,
-                    # Embed顏色設定，只能使用16進制的RGB值
+                    # Embed顏色設定，只能使用16進製的RGB值
                     color=0xbd9be0
                 )
 
