@@ -125,7 +125,7 @@ class DCBot_Twitter(object):
         return minive_link.get(ive_name)
 
     @staticmethod
-    @ lru_cache(maxsize=7)
+    @ lru_cache(maxsize=9)
     def channel_id(ive_name: str) -> int:
         channel_dict = {
             "GAEUL": "1142900837300043889",
