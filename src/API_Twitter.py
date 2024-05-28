@@ -54,7 +54,7 @@ class TwitterHandler:
     # 開啟/關閉 24 小時開發模式
     Dev_24hr_switch = False  # Default is False
     if Dev_24hr_switch is True:
-        # 開發者模式開啟 用列印的方式提醒開發者
+        # 開發者模式開啟 用打印的方式提醒開發者
         print(
             '\033[38;2;255;230;128m開發者模式開啟，將存到字典，'
             '已經跳過\033[0m\033[38;2;230;230;0m發文',
@@ -92,7 +92,7 @@ class TwitterHandler:
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -447,7 +447,7 @@ class TwitterHandler:
                                                                                 pub_date_tw])
                     match len(time_diffs):
                         case 0:
-                            # logger.info("此RSS貼文超過24小時，不存到字典，可以由開發者模式控製是否開啟")
+                            # logger.info("此RSS貼文超過24小時，不存到字典，可以由開發者模式控制是否開啟")
                             pass
                         case _ if time_diffs:
                             # 將貼文符合條件 24小時內 的貼文MD5存入set
@@ -562,26 +562,29 @@ class TwitterHandler:
                     await asyncio.sleep(1)
                     await cls.save_to_json()
 
-            # n 是字典中所有鍵的原始值
-            n = tuple(n.keys())
-            # i 是傳入新資料的逐個鍵值
-            i = tuple(cls.twitter_dict.keys())
+            try:
+                # n 是字典中所有鍵的原始值
+                n = tuple(n.keys())
+                # i 是傳入新資料的逐個鍵值
+                i = tuple(cls.twitter_dict.keys())
 
-            if n != i:
-                # 使用 orjson 進行序列化
-                json_data = orjson.dumps(cls.twitter_dict).decode('utf-8')
-                # 使用 json 進行格式化輸出，以便於閱讀
-                json_data = json.dumps(
-                    json.loads(json_data), indent=4)
+                if n != i:
+                    # 使用 orjson 進行序列化
+                    json_data = orjson.dumps(cls.twitter_dict).decode('utf-8')
+                    # 使用 json 進行格式化輸出，以便於閱讀
+                    json_data = json.dumps(
+                        json.loads(json_data), indent=4)
 
-                # 同步保存數據到 pkl 文件
-                await cls.save_to_pkl_with_retry(cls.twitter_dict)
-
-                # 將格式化後的 JSON 異步寫入文件
-                async with aiofiles.open(cls.json_file, "w") as j:
-                    await j.write(json_data)
-            else:
-                logger.info("數據已經是最新，不再次儲存")
+                    # 同步保存數據到 pkl 文件
+                    await cls.save_to_pkl_with_retry(cls.twitter_dict)
+                    # 將格式化後的 JSON 異步寫入文件
+                    async with aiofiles.open(cls.json_file, "w") as j:
+                        await j.write(json_data)
+                else:
+                    logger.info("數據已經是最新，不再次儲存")
+            except PermissionError:
+                await asyncio.sleep(1.5)
+                await cls.save_to_json()
 
         @classmethod
         async def save_to_pkl_with_retry(cls, data: dict, retry_count=0, max_retries=300) -> None:
@@ -598,7 +601,7 @@ class TwitterHandler:
                     time.sleep(0.1)
             else:
                 logger.error(f"無法儲存文件，已達最大重試次數：{max_retries}")
-                raise ("無法保存數據到 PKL 文件，請檢查文件是否被其他程式使用")
+                raise ("無法保存數據到 PKL 文件，請檢查文件是否被其他程序使用")
 
         @classmethod
         async def save_to_pkl(cls, data: dict) -> None:
@@ -644,7 +647,7 @@ class Re_Tweet:
 
 class TimeDifferenceCalculator:
 
-    # 類定義臺北時區
+    # 類定義台北時區
     TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
     # 使用靜態方法計算時間差，並使用 lru_cache 進行緩存以提高效率
