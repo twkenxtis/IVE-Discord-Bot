@@ -139,7 +139,7 @@ class RSS_List_Pop_up:
         for url in self.popup_list(rss_list):
 
             # 組合 rsshub 請求網址
-            url = f"{rsshub_url}{url}"
+            url = f"{rsshub_url}{url}?showQuotedInTitle=0"
 
             asyncio.run(start_API_Twitter(url).get_response())
             # 決定下次迭代間的等待時間
@@ -219,7 +219,7 @@ class RSS_List_Pop_up:
 
         # 定義多個觸發時間（24小時製）
         trigger_times = [
-            (9, 0), (12, 0), (16, 0), (20, 0), (24, 00), (6, 0)
+            (9, 0), (12, 0), (15, 30), (18, 20), (20, 00), (21, 45), (00, 41)
         ]
         try:
             while True:
