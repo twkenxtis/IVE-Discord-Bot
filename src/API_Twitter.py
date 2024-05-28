@@ -7,7 +7,6 @@ import json
 import logging
 import os
 import pickle
-import queue
 import re
 import time
 import xml.etree.ElementTree as ET
@@ -117,54 +116,36 @@ class TwitterHandler:
         return self.http_response_content
 
     async def async_traverse_rss_entries(self) -> feedparser.FeedParserDict:
-        # 使用 asyncio 獲取當前運行的 loop
-        # 在執行器中異步執行 feedparser.parse 物件
-        return await asyncio.get_running_loop().run_in_executor(
-            None, feedparser.parse, self.http_response_content
-        )
-
-    async def start_process_content(self) -> feedparser.FeedParserDict:
         # 取得並處理 RSS Feed 內容
         if self.http_response_content is not None:
             # self.parsed_rssfeed 為物件 feedparser.util.FeedParserDict 處理後的結果(dict)
-            self.parsed_rssfeed = await self.async_traverse_rss_entries()
+            self.parsed_rssfeed = await self.start_process_content()
             # 清洗 self.parsed_rssfeed -> raw data(dict) 建立個別函數分類字典中的 {key:value}
             async for self.parsed_rssfeed, self.pub_date_tw, self.description in self.async_rss_entry_iterator(self.parsed_rssfeed):
-                await self.rss_process_entry(self.parsed_rssfeed)
+                await self.process_entry(self.parsed_rssfeed)
             return self.parsed_rssfeed
+
+    async def start_process_content(self) -> feedparser.FeedParserDict:
+        # 使用 asyncio 獲取當前運行的 loop
+        # 在執行器中非同步執行 feedparser.parse 方法
+        return await asyncio.get_running_loop().run_in_executor(
+            None, feedparser.parse, self.http_response_content
+        )
 
     async def async_rss_entry_iterator(
         self, tasks: List[asyncio.Task] = [], results: List[Tuple[Any, str, str]] = []
     ) -> AsyncGenerator[Tuple[Any, str, str], None]:
         if self.parsed_rssfeed is not None:
-            def remove_html_tags() -> str:
-                summary = queue.Queue()
-                # 本次請求下來的RSS條目數量
-                n = len(self.parsed_rssfeed.entries)
-                # 迴圈 n 次，把小部分條目放進Queue物件，直到遍歷所有條目終止
-                while n:
-                    # summy 是 feedparser 其中一個key，用來儲存每個RSS條目的描述(與.entries相比是更小部分的描述)
-                    summary.put(
-                        self.parsed_rssfeed.entries[n - 1].get('summary')
-                    )
-                    n -= 1
-                while not summary.empty():
-                    # 用預先編譯的re反向過濾掉HTML標籤，讓描述幾乎只剩下貼文的主內容
-                    tag_check = TwitterHandler.PATTERN_tweet_img.split(str(
-                        TwitterHandler.DESCRIPTION_PATTERN_TAG.split(
-                            summary.get()
-                        ))
-                    )
-                return str(tag_check)
-
+            # 初始化 tasks 的結果為None
+            results = None
             # 收集所有符合條目的 tasks
             tasks = [
                 # 次要函式將每個 RSS 條目拆成兩個部分，第一部分為發布時間，第二部分為RSS描述
-                self.rss_time_handler_and_description(self.rss_entry)
+                self.time_and_description(self.rss_entry)
                 # 清洗過濾每個條目中符合的條目賦予給 -> self.rss_entry
                 for self.rss_entry in self.parsed_rssfeed.entries
-                # 檢查是否有符合任意條件的 IVE hashtag，
-                if self.PATTERN_HASHTAG.finditer(remove_html_tags())
+                # 檢查每個RSS條目是否有符合任意條件的 IVE hashtag
+                if self.PATTERN_HASHTAG.findall(self.rss_entry.get('summary'))
             ]
             try:
                 # 使用 asyncio.gather 並行處理
@@ -182,7 +163,7 @@ class TwitterHandler:
                     )
 
     # 次要函式，處理每個條目的GMT時區轉換 / 定義兩個函數分別為原feedparser物件和描述內容的value
-    async def rss_time_handler_and_description(
+    async def time_and_description(
         self, rss_entry: feedparser.util.FeedParserDict
     ) -> Union[Tuple[feedparser.FeedParserDict, str, str], None]:
         try:
@@ -190,17 +171,15 @@ class TwitterHandler:
             self.pub_date_tw = await TimeZoneConverter().convert_time(
                 rss_entry.published
             )
-
             self.description = rss_entry.description
-
             return rss_entry, self.pub_date_tw, self.description
         except Exception as e:
             logger.error(f"Error processing RSS entry at description: {e}")
             return None, None, None
 
-    async def rss_process_entry(self, rss_entry: Element) -> None:
-        # RSS 描述中提取 Tweet post 的標題和條目中的圖片
-        self.filter_entry = self.main_filter_entry(self.description)
+    async def process_entry(self, rss_entry: feedparser.util.FeedParserDict) -> None:
+        # 從的描述中提取 Tweet 的標題並過濾條目中的圖片
+        self.filter_entry = self.filter_entry_img(self.description)
 
         # RSS_HUB issues fix 2024/05/27 (&nbsp; in description not every tweet)
         try:
@@ -215,12 +194,12 @@ class TwitterHandler:
             raise ValueError
         try:
             # 處理 Twitter 圖片描述
-            twitter_imgs_description, twitter_description_imgs_count = TwitterHandler._process_tweet_images(
+            twitter_imgs_description, twitter_description_imgs_count = TwitterHandler.process_tweet_images(
                 self.description)
         except BaseException as e:
             logger.error(f"Error processing tweet images: {e}")
             raise BaseException(
-                "TwitterHandler._process_tweet_images 無法處理 entry 中的圖片影片數據"
+                "TwitterHandler.process_tweet_images 無法處理 entry 中的圖片影片數據"
             )
 
         # 轉推判斷式
@@ -250,7 +229,7 @@ class TwitterHandler:
         # 檢查傳入值是否為 list 型別
         if not isinstance(twitter_imgs_description, list):
             logger.error(f"{twitter_imgs_description} 傳入值必須是 list 型別")
-            raise TypeError("檢查 _process_tweet_images replace_qp_url value!")
+            raise TypeError("檢查 process_tweet_images replace_qp_url value!")
 
         # 如果符合條件，強制啟用 Twitter Querry string 的原始圖查詢獲得大圖連結
         return [
@@ -259,7 +238,7 @@ class TwitterHandler:
 
     @ staticmethod
     @ lru_cache(maxsize=None)
-    def _process_tweet_images(description: str) -> Tuple[str, int]:
+    def process_tweet_images(description: str) -> Tuple[str, int]:
 
         replace_qp_url = []
 
@@ -305,7 +284,7 @@ class TwitterHandler:
 
     @ staticmethod
     @ lru_cache(maxsize=None)
-    def main_filter_entry(description: str) -> str:
+    def filter_entry_img(description: str) -> str:
         def replace_br_tags(text: str) -> str:
             return re.sub(r"<br\s*/?>", "\n", text)
 
@@ -348,17 +327,19 @@ class TwitterHandler:
         logger.warning("match_author_avatar: 無法匹配作者頭像，返回空字串")
         return " "  # 如果沒有匹配的URL，返回 空字串
 
-    @classmethod
+    @ classmethod
     @ lru_cache(maxsize=14)
     # 傳入值為 RSS 描述中擷取的標題，回傳值為 IVE 成員名稱或是 GROUPS
-    def process_hashtags(cls, rss_entry: str, matched_values=None) -> str:
-
+    def process_hashtags(cls, rss_entry: str, who: feedparser.util.FeedParserDict, matched_values=None) -> str:
         if not rss_entry is None:
-            summary = rss_entry.get('summary')
-            summary = re.sub(r"<br\s*/?>|&nbsp;|<div class=.*?>", " ",
-                             " ".join(TwitterHandler.PATTERN_tweet_img.split(str(TwitterHandler.DESCRIPTION_PATTERN_TAG.split(summary)))))
             # 集合推導，提取 hashtag
-            hash_tags = {H for H in summary.split() if H.startswith("#")}
+            rss_entry = re.sub(
+                r"<br\s*/?>|&nbsp;|<div class=.*?>", " ", rss_entry
+            )
+            try:
+                hash_tags = {H for H in rss_entry.split() if H.startswith("#")}
+            except UnboundLocalError:
+                raise (f'Error in process_hashtags: rss_entry is {rss_entry}')
 
             # 呼叫 match_tags 字典函數，傳入 hashtags 列表用來匹配
             matched_values = match_tags(hash_tags)
@@ -373,9 +354,16 @@ class TwitterHandler:
                     return cls.clean_matched_values(values)
                 # 沒有任何匹配
                 case _:
-                    return "IVE_Only"
+                    who = who[20:-27]
+                    if Re_Tweet().check_account(who) is True:
+                        return "IVE_Only"
+                    elif Re_Tweet().check_account(who) is None:
+                        who in ['IVEstarship_JP']
+                        return "IVE_Only"
+                    # 不符合轉推白名單進行阻擋
+                    rss_entry = None
 
-    @classmethod
+    @ classmethod
     def clean_matched_values(cls, matched_values: set) -> str:
         # 字串轉換和清理格式，去除set的花括號和單引號，並以逗號分隔
         return (
@@ -388,7 +376,7 @@ class TwitterHandler:
         )
 
     # 類方法，建立和更新 Twitter RSS 字典
-    @classmethod
+    @ classmethod
     async def create_twitter_rss_dict(cls, *args, **kwargs) -> Dict[str, Any]:
         """
         class Twitter_Dict_Manager 會在本地建立兩個字典，放在 assets 資料夾持久化
@@ -411,40 +399,42 @@ class TwitterHandler:
     ) -> None:
 
         if not rss_entry is None:
+
             # 取得 IVE 成員名稱或是 GROUPS，用於後續 Discord.py 查字典中對應的頻道 ID
-            dc_channel = self.process_hashtags(rss_entry)
+            dc_channel = self.process_hashtags(
+                rss_entry.get('summary'), rss_entry.get('id'))
+            if not dc_channel is None:
+                # 存進字典的 Tuple
+                tuple_of_dict = (
+                    # (str) Tweet author name
+                    rss_entry.author,
+                    # (str) Tweet post link
+                    rss_entry.link,
+                    # (str) Tweet post entry
+                    filter_entry,
+                    # (str) time of Asia/Taipei not object! EX: 2024/05/20 06:58:33
+                    pub_date_tw,
+                    # (str) System current time.
+                    f"{await get_formatted_current_time()}",
+                    # (int) Tweet ALL images URL count
+                    int(twitter_description_imgs_count),
+                    # (str) Tweet ALL images URL
+                    twitter_imgs_description,
+                    # (str) Tweet author avatar URL
+                    author_avatar_link,
+                    # (str) ive members name or GROUPS
+                    dc_channel,
+                )
 
-            # 存進字典的 Tuple
-            tuple_of_dict = (
-                # (str) Tweet author name
-                rss_entry.author,
-                # (str) Tweet post link
-                rss_entry.link,
-                # (str) Tweet post entry
-                filter_entry,
-                # (str) time of Asia/Taipei not object! EX: 2024/05/20 06:58:33
-                pub_date_tw,
-                # (str) System current time.
-                f"{await get_formatted_current_time()}",
-                # (int) Tweet ALL images URL count
-                int(twitter_description_imgs_count),
-                # (str) Tweet ALL images URL
-                twitter_imgs_description,
-                # (str) Tweet author avatar URL
-                author_avatar_link,
-                # (str) ive members name or GROUPS
-                dc_channel,
-            )
-
-            # 把Twitter 貼文網址 MD5當字典的 Key
-            MD5 = hashlib.md5(rss_entry.link.encode("utf-8")).hexdigest()
+                # 把Twitter 貼文網址 MD5當字典的 Key
+                MD5 = hashlib.md5(rss_entry.link.encode("utf-8")).hexdigest()
 
             async def time_offset(match_set_md5=set()):
                 # pub_data_tw 是個字串非物件 EX: 2024/05/20 06:58:33
                 # length of 19 是字典索引value[4] -> (pub_date_tw) 的長度
                 if len(pub_date_tw) == 19:
                     time_diffs = TimeDifferenceCalculator.calculate_in_parallel([
-                                                                                pub_date_tw])
+                        pub_date_tw])
                     match len(time_diffs):
                         case 0:
                             # logger.info("此RSS貼文超過24小時，不存到字典，可以由開發者模式控制是否開啟")
@@ -480,7 +470,6 @@ class TwitterHandler:
             else:
                 await self.Twitter_Dict_Manager.update_twitter_dict({MD5: tuple_of_dict})
 
-    # 創建一個類別屬性，用於存儲 Twitter 相關的字典數據
     class Twitter_Dict_Manager:
 
         # 存儲 Twitter 相關的字典數據
@@ -561,6 +550,12 @@ class TwitterHandler:
                     )
                     await asyncio.sleep(1)
                     await cls.save_to_json()
+                except pickle.UnpicklingError:
+                    await asyncio.sleep(1)
+                    await cls.save_to_json()
+                except PermissionError:
+                    await asyncio.sleep(1)
+                    await cls.save_to_json()
 
             try:
                 # n 是字典中所有鍵的原始值
@@ -580,10 +575,12 @@ class TwitterHandler:
                     # 將格式化後的 JSON 異步寫入文件
                     async with aiofiles.open(cls.json_file, "w") as j:
                         await j.write(json_data)
-                else:
-                    logger.info("數據已經是最新，不再次儲存")
+                    await cls.save_to_json()
             except PermissionError:
-                await asyncio.sleep(1.5)
+                asyncio.sleep(1)
+                await cls.save_to_json()
+            except EOFError:
+                asyncio.sleep(1)
                 await cls.save_to_json()
 
         @classmethod
@@ -726,7 +723,7 @@ class start_API_Twitter:
         if not await self.try_url():
             return
         try:
-            return await self.rss_object.start_process_content()
+            return await self.rss_object.async_traverse_rss_entries()
         except AttributeError as e:
             logger.error(f"ERROR: {e}")
             raise AttributeError("Error processing RSS feed")
