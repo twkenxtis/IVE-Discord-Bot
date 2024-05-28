@@ -49,12 +49,12 @@ import orjson
 logging.basicConfig(level=logging.INFO)
 
 
-class TwitterHandler(object):
+class TwitterHandler:
 
     # 開啟/關閉 24 小時開發模式
     Dev_24hr_switch = False  # Default is False
     if Dev_24hr_switch is True:
-        # 開發者模式開啟 用打印的方式提醒開發者
+        # 開發者模式開啟 用列印的方式提醒開發者
         print(
             '\033[38;2;255;230;128m開發者模式開啟，將存到字典，'
             '已經跳過\033[0m\033[38;2;230;230;0m發文',
@@ -92,7 +92,7 @@ class TwitterHandler(object):
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -206,7 +206,7 @@ class TwitterHandler(object):
         try:
             if self.filter_entry is not None:
                 # 如果貼文是引用就會有div class 使用正則去除
-                self.filter_entry = re.sub(r'&nbsp;|<div class=.*?>', ' ',
+                self.filter_entry = re.sub(r"&nbsp;|<div class=.*?>", ' ',
                                            self.filter_entry)
         except ValueError:
             logger.error(
@@ -223,8 +223,17 @@ class TwitterHandler(object):
                 "TwitterHandler._process_tweet_images 無法處理 entry 中的圖片影片數據"
             )
 
+        # 轉推判斷式
+        who = rss_entry.get('id')[20:-27]
+        if self.filter_entry.startswith('RT') and Re_Tweet().check_account(who) is True:
+            pass
+        elif self.filter_entry.startswith('RT') and Re_Tweet().check_account(who) is None:
+            # 不符合轉推白名單進行阻擋
+            rss_entry = None
+
         # 匹配作者頭像
         self.author_avatar_link = self.match_author_avatar()
+
         # 建立 Twitter RSS 字典
         await TwitterHandler.create_twitter_rss_dict(
             self,
@@ -272,7 +281,7 @@ class TwitterHandler(object):
 
         return TwitterHandler._format_imgs(twitter_imgs_description_str, twitter_description_imgs_count)
 
-    @ staticmethod
+    @staticmethod
     def _format_imgs(description_str: Union[str, None], count: int) -> Tuple[Union[str, None], int]:
         # 錯誤處理判斷是否有圖片或影片，返回 None 並且 images_count 為 0
         if description_str is None:
@@ -339,33 +348,34 @@ class TwitterHandler(object):
         logger.warning("match_author_avatar: 無法匹配作者頭像，返回空字串")
         return " "  # 如果沒有匹配的URL，返回 空字串
 
-    @ classmethod
+    @classmethod
     @ lru_cache(maxsize=14)
     # 傳入值為 RSS 描述中擷取的標題，回傳值為 IVE 成員名稱或是 GROUPS
     def process_hashtags(cls, rss_entry: str, matched_values=None) -> str:
 
-        summary = rss_entry.get('summary')
-        summary = re.sub(r"<br\s*/?>|&nbsp;|<div class=.*?>", " ",
-                         " ".join(TwitterHandler.PATTERN_tweet_img.split(str(TwitterHandler.DESCRIPTION_PATTERN_TAG.split(summary)))))
-        # 集合推導，提取 hashtag
-        hash_tags = {H for H in summary.split() if H.startswith("#")}
+        if not rss_entry is None:
+            summary = rss_entry.get('summary')
+            summary = re.sub(r"<br\s*/?>|&nbsp;|<div class=.*?>", " ",
+                             " ".join(TwitterHandler.PATTERN_tweet_img.split(str(TwitterHandler.DESCRIPTION_PATTERN_TAG.split(summary)))))
+            # 集合推導，提取 hashtag
+            hash_tags = {H for H in summary.split() if H.startswith("#")}
 
-        # 呼叫 match_tags 字典函數，傳入 hashtags 列表用來匹配
-        matched_values = match_tags(hash_tags)
+            # 呼叫 match_tags 字典函數，傳入 hashtags 列表用來匹配
+            matched_values = match_tags(hash_tags)
 
-        # 處理 matched_values 的情況
-        match matched_values:
-            # 如果 match_tags 函式回傳值大於 1，表示有多個 IVE 成員，因此回傳 "GROUPS"
-            case values if len(values) > 1:
-                return "GROUPS"
-            # match_tags 函式回傳值只有 1 個 IVE 成員，因此回傳該成員名稱
-            case _ if values != set():
-                return cls.clean_matched_values(values)
-            # 沒有任何匹配
-            case _:
-                return "IVE_Only"
+            # 處理 matched_values 的情況
+            match matched_values:
+                # 如果 match_tags 函式回傳值大於 1，表示有多個 IVE 成員，因此回傳 "GROUPS"
+                case values if len(values) > 1:
+                    return "GROUPS"
+                # match_tags 函式回傳值只有 1 個 IVE 成員，因此回傳該成員名稱
+                case _ if values != set():
+                    return cls.clean_matched_values(values)
+                # 沒有任何匹配
+                case _:
+                    return "IVE_Only"
 
-    @ classmethod
+    @classmethod
     def clean_matched_values(cls, matched_values: set) -> str:
         # 字串轉換和清理格式，去除set的花括號和單引號，並以逗號分隔
         return (
@@ -378,7 +388,7 @@ class TwitterHandler(object):
         )
 
     # 類方法，建立和更新 Twitter RSS 字典
-    @ classmethod
+    @classmethod
     async def create_twitter_rss_dict(cls, *args, **kwargs) -> Dict[str, Any]:
         """
         class Twitter_Dict_Manager 會在本地建立兩個字典，放在 assets 資料夾持久化
@@ -400,74 +410,75 @@ class TwitterHandler(object):
         author_avatar_link: str,
     ) -> None:
 
-        # 取得 IVE 成員名稱或是 GROUPS，用於後續 Discord.py 查字典中對應的頻道 ID
-        dc_channel = self.process_hashtags(rss_entry)
+        if not rss_entry is None:
+            # 取得 IVE 成員名稱或是 GROUPS，用於後續 Discord.py 查字典中對應的頻道 ID
+            dc_channel = self.process_hashtags(rss_entry)
 
-       # 存進字典的 Tuple
-        tuple_of_dict = (
-            # (str) Tweet author name
-            rss_entry.author,
-            # (str) Tweet post link
-            rss_entry.link,
-            # (str) Tweet post entry
-            filter_entry,
-            # (str) time of Asia/Taipei not object! EX: 2024/05/20 06:58:33
-            pub_date_tw,
-            # (str) System current time.
-            f"{await get_formatted_current_time()}",
-            # (int) Tweet ALL images URL count
-            int(twitter_description_imgs_count),
-            # (str) Tweet ALL images URL
-            twitter_imgs_description,
-            # (str) Tweet author avatar URL
-            author_avatar_link,
-            # (str) ive members name or GROUPS
-            dc_channel,
-        )
+            # 存進字典的 Tuple
+            tuple_of_dict = (
+                # (str) Tweet author name
+                rss_entry.author,
+                # (str) Tweet post link
+                rss_entry.link,
+                # (str) Tweet post entry
+                filter_entry,
+                # (str) time of Asia/Taipei not object! EX: 2024/05/20 06:58:33
+                pub_date_tw,
+                # (str) System current time.
+                f"{await get_formatted_current_time()}",
+                # (int) Tweet ALL images URL count
+                int(twitter_description_imgs_count),
+                # (str) Tweet ALL images URL
+                twitter_imgs_description,
+                # (str) Tweet author avatar URL
+                author_avatar_link,
+                # (str) ive members name or GROUPS
+                dc_channel,
+            )
 
-        # 把Twitter 貼文網址 MD5當字典的 Key
-        MD5 = hashlib.md5(rss_entry.link.encode("utf-8")).hexdigest()
+            # 把Twitter 貼文網址 MD5當字典的 Key
+            MD5 = hashlib.md5(rss_entry.link.encode("utf-8")).hexdigest()
 
-        async def time_offset(match_set_md5=set()):
-            # pub_data_tw 是個字串非物件 EX: 2024/05/20 06:58:33
-            # length of 19 是字典索引value[4] -> (pub_date_tw) 的長度
-            if len(pub_date_tw) == 19:
-                time_diffs = TimeDifferenceCalculator.calculate_in_parallel([
-                                                                            pub_date_tw])
-                match len(time_diffs):
-                    case 0:
-                        # logger.info("此RSS貼文超過24小時，不存到字典，可以由開發者模式控制是否開啟")
-                        pass
-                    case _ if time_diffs:
-                        # 將貼文符合條件 24小時內 的貼文MD5存入set
-                        match_set_md5.add(MD5)
-                        # 以MD5作為字典的{Key: tuple} 使用 update_twitter_dict 異步寫入資料到 Twitter_dict 字典中
-                        await self.Twitter_Dict_Manager.update_twitter_dict({MD5: tuple_of_dict})
-            # 如果 len(pub_date_tw) != 19 的異常處理區域
+            async def time_offset(match_set_md5=set()):
+                # pub_data_tw 是個字串非物件 EX: 2024/05/20 06:58:33
+                # length of 19 是字典索引value[4] -> (pub_date_tw) 的長度
+                if len(pub_date_tw) == 19:
+                    time_diffs = TimeDifferenceCalculator.calculate_in_parallel([
+                                                                                pub_date_tw])
+                    match len(time_diffs):
+                        case 0:
+                            # logger.info("此RSS貼文超過24小時，不存到字典，可以由開發者模式控製是否開啟")
+                            pass
+                        case _ if time_diffs:
+                            # 將貼文符合條件 24小時內 的貼文MD5存入set
+                            match_set_md5.add(MD5)
+                            # 以MD5作為字典的{Key: tuple} 使用 update_twitter_dict 異步寫入資料到 Twitter_dict 字典中
+                            await self.Twitter_Dict_Manager.update_twitter_dict({MD5: tuple_of_dict})
+                # 如果 len(pub_date_tw) != 19 的異常處理區域
+                else:
+                    match isinstance(pub_date_tw, str):
+                        case True:
+                            logger.warning(
+                                f"pub_date_tw: {pub_date_tw} 資料型態正確，檢查是否時間格式錯誤，無法正確計算時間差異")
+                            raise ValueError(
+                                f"pub_date_tw: {pub_date_tw} 字串時間格式錯誤! ")
+                        case False:
+                            logger.warning(
+                                f"pub_date_tw: {pub_date_tw} 格式錯誤，無法正確計算時間差異")
+                            raise ValueError(
+                                f"pub_date_tw: {pub_date_tw} 格式錯誤")
+                        case _:
+                            logger.error(
+                                f"pub_date_tw 有異常 {pub_date_tw} | {type(pub_date_tw)} | {len(pub_date_tw)} 無法正確計算時間差異")
+                            raise ValueError(
+                                f"pub_date_tw: {pub_date_tw} 異常，無法正確計算時間差異")
+
+            # :56 可以再類方法自行切換開發者模式跳過時間差計算
+            if TwitterHandler.Dev_24hr_switch is False:
+                # 異步執行時間差計算
+                await asyncio.gather(time_offset())
             else:
-                match isinstance(pub_date_tw, str):
-                    case True:
-                        logger.warning(
-                            f"pub_date_tw: {pub_date_tw} 資料型態正確，檢查是否時間格式錯誤，無法正確計算時間差異")
-                        raise ValueError(
-                            f"pub_date_tw: {pub_date_tw} 字串時間格式錯誤! ")
-                    case False:
-                        logger.warning(
-                            f"pub_date_tw: {pub_date_tw} 格式錯誤，無法正確計算時間差異")
-                        raise ValueError(
-                            f"pub_date_tw: {pub_date_tw} 格式錯誤")
-                    case _:
-                        logger.error(
-                            f"pub_date_tw 有異常 {pub_date_tw} | {type(pub_date_tw)} | {len(pub_date_tw)} 無法正確計算時間差異")
-                        raise ValueError(
-                            f"pub_date_tw: {pub_date_tw} 異常，無法正確計算時間差異")
-
-        # :56 可以再類方法自行切換開發者模式跳過時間差計算
-        if TwitterHandler.Dev_24hr_switch is False:
-            # 異步執行時間差計算
-            await asyncio.gather(time_offset())
-        else:
-            await self.Twitter_Dict_Manager.update_twitter_dict({MD5: tuple_of_dict})
+                await self.Twitter_Dict_Manager.update_twitter_dict({MD5: tuple_of_dict})
 
     # 創建一個類別屬性，用於存儲 Twitter 相關的字典數據
     class Twitter_Dict_Manager:
@@ -587,7 +598,7 @@ class TwitterHandler(object):
                     time.sleep(0.1)
             else:
                 logger.error(f"無法儲存文件，已達最大重試次數：{max_retries}")
-                raise ("無法保存數據到 PKL 文件，請檢查文件是否被其他程序使用")
+                raise ("無法保存數據到 PKL 文件，請檢查文件是否被其他程式使用")
 
         @classmethod
         async def save_to_pkl(cls, data: dict) -> None:
@@ -604,9 +615,36 @@ class TwitterHandler(object):
             logger.info("數據保存到PKL成功")
 
 
+class Re_Tweet:
+
+    def __init__(self) -> None:
+        self.white_list_path = self.path_file()
+        self.white_list = self.white_black_list()
+        pass
+
+    def check_account(self, account):
+        if account in self.white_list:
+            return True
+
+    def white_black_list(self) -> set:
+        try:
+            with open(self.white_list_path, 'r') as j:
+                white_list = json.load(j)
+                return white_list
+        except FileNotFoundError:
+            logger.error("File not found")
+            raise FileExistsError("File not found")
+
+    def path_file(self):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path_white_list = os.path.join(
+            script_dir, '..', 'config', 'white_list.json')
+        return file_path_white_list
+
+
 class TimeDifferenceCalculator:
 
-    # 類定義台北時區
+    # 類定義臺北時區
     TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
     # 使用靜態方法計算時間差，並使用 lru_cache 進行緩存以提高效率
