@@ -130,16 +130,16 @@ class DCBot_Twitter(object):
         channel_dict = {
             "GAEUL": "1142900837300043889",
             "fallingin__fall": "1142900837300043889",
-            "YUJIN": "1142900711315734599",
-            "_yujin_an": "1142900711315734599",
-            "REI": "1142900891393994782",
-            "reinyourheart": "1142900891393994782",
-            "WONYOUNG": "1142900973405229056",
-            "for_everyoung10": "1142900973405229056",
-            "LIZ": "1142901102526869556",
-            "liz.yeyo": "1142901102526869556",
-            "LEESEO": "1142901201332097205",
-            "eeseooes": "1142901201332097205",
+            "YUJIN": "1245000842944184420",
+            "_yujin_an": "1245000842944184420",
+            "REI": "1245000910204309586",
+            "reinyourheart": "1245000910204309586",
+            "WONYOUNG": "1245000951941693440",
+            "for_everyoung10": "1245000951941693440",
+            "LIZ": "1245000993394004009",
+            "liz.yeyo": "1245000993394004009",
+            "LEESEO": "1245001033151811614",
+            "eeseooes": "1245001033151811614",
             "GROUPS": "1157550597248135208",
             "IVE_Only": "1142905266703192157"
 
@@ -232,7 +232,7 @@ def discord_twitter():
     @ client.event
     # Token順利登入後的主事件函式
     async def on_ready():
-        # 給自己知道目前使用哪一個 Discord Token 來登入機器人的身份
+        # 給自己知道目前使用哪一個 Discord Token 來登入機器人的身分
         print(
             f"\033[90m{await get_formatted_current_time()}\033[0m",
             "\033[38;2;255;0;85m目前登入身份 --> \033[0m",
@@ -272,7 +272,7 @@ def discord_twitter():
         # 迴圈讀取 twitter_dict value {MD5:values}
         for MD5, values in twitter_dict.items():
             # 訊息尚未被Discord發送成功前，字典 values 會有9個值
-            if len(values) == 9:
+            if len(values) == 9 and values[8] is not None:
                 # ☹︎ Value system_time 暫時沒想到用在哪裡，先當佔位變數 這是有序的 [List] 必須保持每個變數的位置和功能
                 # 定義 9 個不同的函數解包字典 values 除了int(img_count)，其餘都是 string type
                 twitter_author, twitter_link, twitter_entry, post_time, system_time, img_count, twitter_all_img, avatar_link, ive_members = values
@@ -290,7 +290,7 @@ def discord_twitter():
                 embed = discord.Embed(
                     title='**' + twitter_author + '**',
                     url=author_link,
-                    # Embed顏色設定，只能使用16進製的RGB值
+                    # Embed顏色設定，只能使用16進制的RGB值
                     color=0xbd9be0
                 )
 
