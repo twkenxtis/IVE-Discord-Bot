@@ -41,11 +41,11 @@ vim Discord.py
     
     class DCBot_Twitter(object):
 
-      # 省略一些函式...
+      # skip some funcation...
 
       
       @staticmethod
-      @ lru_cache(maxsize=7)
+      @ lru_cache(maxsize=9)
       def channel_id(ive_name: str) -> int:
           channel_dict = {
               "GAEUL": "1142900837300043889",
@@ -60,7 +60,9 @@ vim Discord.py
               "liz.yeyo": "1142901102526869556",
               "LEESEO": "1142901201332097205",
               "eeseooes": "1142901201332097205",
-              "GROUPS": "1157550597248135208"
+              "GROUPS": "1157550597248135208",
+              "IVE_Only": "1142905266703192157"
+  
           }
       
   - 步驟 5
