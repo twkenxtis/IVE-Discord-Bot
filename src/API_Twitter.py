@@ -334,7 +334,7 @@ class TwitterHandler:
             case _:
                 description = replace_br_tags(description_match.group(1))
 
-        return description  # 返回圖影或 None
+        return description  # 返回圖影連結+描述或只有描述
 
     @ lru_cache(maxsize=32)
     def match_author_avatar(self, xml_data=None) -> Optional[str]:
