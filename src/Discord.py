@@ -250,9 +250,9 @@ def discord_twitter():
         await send_embed()
         # 主檢測循環
         while True:
-            await send_embed()
             # 主檢測循環，時間調整(秒為單位)
-            await asyncio.sleep(10)
+            await asyncio.sleep(13)
+            await send_embed()
 
     @client.command()
     async def ping(ctx):
