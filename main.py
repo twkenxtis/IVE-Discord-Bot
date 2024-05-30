@@ -143,7 +143,7 @@ class RSS_List_Pop_up:
 
             asyncio.run(start_API_Twitter(url).get_response())
             # 決定下次迭代間的等待時間
-            wait_time = random.randint(13, 47)
+            wait_time = random.randint(29, 47)
             sys.stdout.write("\r")  # 返回行首，用於在同一行更新文本
             print(f"\x1B[38;2;255;77;166m下次請求將在\033[0m"
                   f"\033[38;2;230;230;0m {wait_time} \033[0m"
@@ -219,7 +219,7 @@ class RSS_List_Pop_up:
 
         # 定義多個觸發時間（24小時製）
         trigger_times = [
-            (9, 0), (12, 0), (15, 30), (18, 20), (20, 00), (21, 45), (00, 41)
+            (9, 0), (12, 0), (15, 30), (20, 00), (00, 41)
         ]
         try:
             while True:
