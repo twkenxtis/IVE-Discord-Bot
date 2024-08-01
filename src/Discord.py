@@ -267,7 +267,8 @@ def discord_twitter():
 
         if twitter_dict is None:
             logger.critical("嘗試檢查資料庫是否存在或已經損毀")
-            raise ("PKL 資料庫遺失或資料不正確")
+            await asyncio.sleep(10)
+            await send_embed()
 
         # 迴圈讀取 twitter_dict value {MD5:values}
         for MD5, values in twitter_dict.items():
