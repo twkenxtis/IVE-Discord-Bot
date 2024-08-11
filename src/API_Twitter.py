@@ -53,14 +53,14 @@ class TwitterHandler:
     # 開啟/關閉 24 小時開發模式
     Dev_24hr_switch = False  # Default is False
     if Dev_24hr_switch is True:
-        # 開發者模式開啟 用列印的方式提醒開發者
+        # 開發者模式開啟 用打印的方式提醒開發者
         print(
             '\033[38;2;255;230;128m開發者模式開啟，將存到字典，'
             '已經跳過\033[0m\033[38;2;230;230;0m發文',
             '\033[0m\033[38;5;99m24\033[0m \033[38;2;230;230;0m小時內的限製\033[0m'
         )
     elif Dev_24hr_switch is False:
-        logger.info('未開啟開發者模式，將啟用24hr限製!!')
+        logger.info('未開啟開發者模式，將啟用24hr限制!!')
 
     # 開啟/關閉 轉換 URL 為 Markdown 格式 (For Discord bot)
     markdown_urls_switch = True  # Default is True
@@ -334,7 +334,7 @@ class TwitterHandler:
             case _:
                 description = replace_br_tags(description_match.group(1))
 
-        return description  # 返回圖影連結+描述或只有描述
+        return description  # 返回圖影或 None
 
     @ lru_cache(maxsize=32)
     def match_author_avatar(self, xml_data=None) -> Optional[str]:
@@ -351,8 +351,9 @@ class TwitterHandler:
             if TwitterHandler.DESCRIPTION_PATTERN_AUTHOR.match(url_element.text):
                 return url_element.text
 
-        logger.warning("match_author_avatar: 無法匹配作者頭像，返回空字串")
-        return " "  # 如果沒有匹配的URL，返回 空字串
+        logger.warning("match_author_avatar: 無法匹配作者頭像，返回預設頭像")
+        # 如果沒有匹配的URL，返回預設頭像
+        return "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png"
 
     # 條件判斷回傳值，給予None或自訂字串
     @ classmethod
@@ -698,7 +699,7 @@ class Re_Tweet:
 
 class TimeDifferenceCalculator:
 
-    # 類定義台北時區
+    # 類定義臺北時區
     TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
     # 使用靜態方法計算時間差，並使用 lru_cache 進行緩存以提高效率
