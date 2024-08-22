@@ -53,14 +53,14 @@ class TwitterHandler:
     # 開啟/關閉 24 小時開發模式
     Dev_24hr_switch = False  # Default is False
     if Dev_24hr_switch is True:
-        # 開發者模式開啟 用打印的方式提醒開發者
+        # 開發者模式開啟 用列印的方式提醒開發者
         print(
             '\033[38;2;255;230;128m開發者模式開啟，將存到字典，'
             '已經跳過\033[0m\033[38;2;230;230;0m發文',
             '\033[0m\033[38;5;99m24\033[0m \033[38;2;230;230;0m小時內的限製\033[0m'
         )
     elif Dev_24hr_switch is False:
-        logger.info('未開啟開發者模式，將啟用24hr限制!!')
+        logger.info('未開啟開發者模式，將啟用24hr限製!!')
 
     # 開啟/關閉 轉換 URL 為 Markdown 格式 (For Discord bot)
     markdown_urls_switch = True  # Default is True
@@ -93,7 +93,7 @@ class TwitterHandler:
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -169,7 +169,7 @@ class TwitterHandler:
         self, rss_entry: feedparser.util.FeedParserDict
     ) -> Union[Tuple[feedparser.FeedParserDict, str, str], None]:
         try:
-            # 將RSS中的發布時間轉換為自訂的台灣時區，return 自訂字串時間
+            # 將RSS中的發布時間轉換為自訂的臺灣時區，return 自訂字串時間
             self.pub_date_tw = await TimeZoneConverter().convert_time(
                 rss_entry.published
             )
@@ -256,7 +256,7 @@ class TwitterHandler:
             logger.error(f"{twitter_imgs_description} 傳入值必須是 list 型別")
             raise TypeError("檢查 process_tweet_images replace_qp_url value!")
 
-        # 如果符合條件，強制啟用 Twitter Querry string 的原始圖查詢獲得大圖連結
+        # 如果符合條件，強製啟用 Twitter Querry string 的原始圖查詢獲得大圖連結
         return [
             url + "&name=orig" if url.endswith("?format=jpg") else url for url in twitter_imgs_description
         ]
@@ -333,6 +333,10 @@ class TwitterHandler:
                 description = replace_br_tags(description)
             case _:
                 description = replace_br_tags(description_match.group(1))
+                description = re.sub(
+                    r'<img (width|height)=.*?/>', '',
+                    description
+                )
 
         return description  # 返回圖影或 None
 
