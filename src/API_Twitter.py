@@ -93,7 +93,7 @@ class TwitterHandler:
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -169,7 +169,7 @@ class TwitterHandler:
         self, rss_entry: feedparser.util.FeedParserDict
     ) -> Union[Tuple[feedparser.FeedParserDict, str, str], None]:
         try:
-            # 將RSS中的發布時間轉換為自訂的臺灣時區，return 自訂字串時間
+            # 將RSS中的發布時間轉換為自訂的台灣時區，return 自訂字串時間
             self.pub_date_tw = await TimeZoneConverter().convert_time(
                 rss_entry.published
             )
@@ -213,6 +213,8 @@ class TwitterHandler:
                 '&amp;': '&',
                 '&quot;': '"',
                 '&apos;': "'",
+                '<div>': "",
+                '</div>': "",
                 '&nbsp;': ' '
             }
             return html_entities.get(match.group(0), match.group(0))
@@ -226,7 +228,7 @@ class TwitterHandler:
 
                 # 將其他 HTML 實體轉換為對應符號
                 entry_without_images = re.sub(
-                    r'&lt;|&gt;|&amp;|&quot;|&apos;|&nbsp;', html_entity_to_char, entry_without_images)
+                    r'&lt;|&gt;|&amp;|&quot;|&apos;|<div>|</div>|&nbsp;', html_entity_to_char, entry_without_images)
             except ValueError:
                 logger.error(
                     f"Post title:{entry_without_images} 為 None")
@@ -256,7 +258,7 @@ class TwitterHandler:
             logger.error(f"{twitter_imgs_description} 傳入值必須是 list 型別")
             raise TypeError("檢查 process_tweet_images replace_qp_url value!")
 
-        # 如果符合條件，強製啟用 Twitter Querry string 的原始圖查詢獲得大圖連結
+        # 如果符合條件，強制啟用 Twitter Querry string 的原始圖查詢獲得大圖連結
         return [
             url + "&name=orig" if url.endswith("?format=jpg") else url for url in twitter_imgs_description
         ]
@@ -333,10 +335,10 @@ class TwitterHandler:
                 description = replace_br_tags(description)
             case _:
                 description = replace_br_tags(description_match.group(1))
-                description = re.sub(
-                    r'<img (width|height)=.*?/>', '',
-                    description
-                )
+        description = re.sub(
+            r'<img (width|height)=.*?/>', '',
+            description
+        )
 
         return description  # 返回圖影或 None
 
@@ -355,9 +357,8 @@ class TwitterHandler:
             if TwitterHandler.DESCRIPTION_PATTERN_AUTHOR.match(url_element.text):
                 return url_element.text
 
-        logger.warning("match_author_avatar: 無法匹配作者頭像，返回預設頭像")
-        # 如果沒有匹配的URL，返回預設頭像
-        return "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png"
+        logger.warning("match_author_avatar: 無法匹配作者頭像，返回空字串")
+        return " "  # 如果沒有匹配的URL，返回 空字串
 
     # 條件判斷回傳值，給予None或自訂字串
     @ classmethod
@@ -703,7 +704,7 @@ class Re_Tweet:
 
 class TimeDifferenceCalculator:
 
-    # 類定義臺北時區
+    # 類定義台北時區
     TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
     # 使用靜態方法計算時間差，並使用 lru_cache 進行緩存以提高效率
@@ -727,8 +728,8 @@ class TimeDifferenceCalculator:
                 )
             ).total_seconds()
 
-            # 如果時間差小於24小時
-            if time_difference_seconds <= 86400:
+            # 如果時間差小於72小時
+            if time_difference_seconds <= 83200:
                 return time_difference_seconds
             else:
                 return None
