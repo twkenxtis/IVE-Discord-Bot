@@ -93,7 +93,7 @@ class TwitterHandler:
         self.filter_entry = None  # 儲存過濾後的 Tweet 描述內容(標題/照片為主)
         self.rss_entry = None  # 儲存 RSS 條目
         self.description = None  # 儲存 RSS 條目的描述內容
-        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成台灣時區並且自訂為字串格式
+        self.pub_date_tw = None  # RSS 條目的發布時間，由GMT轉換成臺灣時區並且自訂為字串格式
         self.author_avatar_link = None  # 儲存作者頭像
 
     async def validate_url_and_get_feed(self) -> str:
@@ -169,7 +169,7 @@ class TwitterHandler:
         self, rss_entry: feedparser.util.FeedParserDict
     ) -> Union[Tuple[feedparser.FeedParserDict, str, str], None]:
         try:
-            # 將RSS中的發布時間轉換為自訂的台灣時區，return 自訂字串時間
+            # 將RSS中的發布時間轉換為自訂的臺灣時區，return 自訂字串時間
             self.pub_date_tw = await TimeZoneConverter().convert_time(
                 rss_entry.published
             )
@@ -258,7 +258,7 @@ class TwitterHandler:
             logger.error(f"{twitter_imgs_description} 傳入值必須是 list 型別")
             raise TypeError("檢查 process_tweet_images replace_qp_url value!")
 
-        # 如果符合條件，強制啟用 Twitter Querry string 的原始圖查詢獲得大圖連結
+        # 如果符合條件，強製啟用 Twitter Querry string 的原始圖查詢獲得大圖連結
         return [
             url + "&name=orig" if url.endswith("?format=jpg") else url for url in twitter_imgs_description
         ]
@@ -357,8 +357,8 @@ class TwitterHandler:
             if TwitterHandler.DESCRIPTION_PATTERN_AUTHOR.match(url_element.text):
                 return url_element.text
 
-        logger.warning("match_author_avatar: 無法匹配作者頭像，返回空字串")
-        return " "  # 如果沒有匹配的URL，返回 空字串
+        logger.warning("match_author_avatar: 無法匹配作者頭像，返回預設頭像")
+        return "https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png"
 
     # 條件判斷回傳值，給予None或自訂字串
     @ classmethod
