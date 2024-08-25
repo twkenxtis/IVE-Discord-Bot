@@ -72,7 +72,7 @@ class TwitterHandler:
         r'https://pbs.twimg.com/media/[^"\']+?\?format=jpg')
     PATTERN_video_thumb = re.compile(
         r'https://pbs.twimg.com/tweet_video_thumb/[^"\']+?\.(?:jpg)')
-    PATTERN_mp4 = re.compile(r'https://video.twimg.com/[^"\']+?\.(?:mp4)')
+    PATTERN_mp4 = r'https://video(?:-cf)?\.twimg\.com/[^"\']+?\.(?:mp4)')
     DESCRIPTION_PATTERN_TAG = re.compile(
         r'((?:.|\n)*?)(?:<img src="|<video controls="|<video src=")'
     )
