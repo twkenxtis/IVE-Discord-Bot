@@ -6,6 +6,7 @@ import logging
 # aiocache - BSD 3-Clause License
 # Copyright (c) 2016, Manuel Miranda de Cid
 # For more details, see the LICENSE file included with the distribution
+import asyncio
 import aiohttp
 from aiohttp import ClientTimeout
 # fake-useragent - Apache License 2.0
@@ -21,37 +22,47 @@ logging.basicConfig(level=logging.INFO)
 
 
 class HttpRequester:
-
-    def __init__(self, url):
+    def __init__(self, url, max_retries=3, retry_delay=5):
         self.url = url
         self.response_content = None
-        self.status_message = "失敗，無法連線"  # 默認狀態消息為“失敗，無法連接”
-        self.headers = {"user-agent": UserAgent().random}  # 隨機生成User-Agent
-        self.session = aiohttp.ClientSession()  # 創建Aiohttp客戶端會話
+        self.status_message = "失敗，無法連線"
+        self.headers = {"user-agent": UserAgent().random}
+        self.session = aiohttp.ClientSession()
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
 
     async def send_request(self):
-        timeout = ClientTimeout(total=20)  # 設置超時時間為20秒
-        try:
-            async with self.session.get(self.url, headers=self.headers, timeout=timeout) as response:
-                self.response_content = await response.text()  # 獲取響應內容
-                self.status_message = f"HTTP Status Code: {response.status}"
-                return response.status
-        except aiohttp.ClientError as e:
-            logger.error(f"ClientError: {e} - 網路請求錯誤")
-            return "失敗，網路請求錯誤"
+        timeout = ClientTimeout(total=20)
+        retries = 0
+
+        while retries < self.max_retries:
+            try:
+                async with self.session.get(self.url, headers=self.headers, timeout=timeout) as response:
+                    self.response_content = await response.text()
+                    self.status_message = f"HTTP Status Code: {response.status}"
+                    return response.status
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"TimeoutError: Request timed out for {self.url}. Retrying in {self.retry_delay} seconds...")
+                await asyncio.sleep(self.retry_delay)
+                retries += 1
+            except aiohttp.ClientError as e:
+                logger.error(f"ClientError: {e} - 網路請求錯誤")
+                return "失敗，網路請求錯誤"
+
+        # Close session if max retries exceeded
+        await self.close()
+        return "失敗，超過最大重試次數"
 
     async def get_response_content(self):
-        # 獲取響應內容並轉換為字符串
         return str(self.response_content)
 
     async def start_requests(self):
-        status_code_or_message = await self.send_request()  # 發送網路請求
+        status_code_or_message = await self.send_request()
         if status_code_or_message == 200:
             logger.info(f"{self.url} ─ {status_code_or_message}")
-            return
         else:
             logger.warning(f"{self.url} ─ {status_code_or_message}")
-            return
 
     async def close(self):
-        await self.session.close()  # 關閉會話
+        await self.session.close()
